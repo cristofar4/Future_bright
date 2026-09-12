@@ -224,6 +224,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 .hero__media { position: absolute; inset: 0; }
 .hero__media img { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+/* A different framing of the same photograph, so two slides don't read as a repeat. */
+.hero__media--alt img { object-position: 88% 62%; }
 .hero__media::after {
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(100deg, rgba(8,28,62,.96) 0%, rgba(8,28,62,.9) 32%, rgba(8,28,62,.55) 55%, rgba(8,28,62,.25) 100%);

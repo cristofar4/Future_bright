@@ -119,16 +119,20 @@ These need a decision or a backend before the site goes live:
 
    | Where | Source | Desktop | Phone |
    | --- | --- | --- | --- |
-   | Hero slide 1 | `hero-campus.png` 548x230 | 2.34x | 2.06x |
-   | Hero slide 2 | `about-campus.png` 328x220 | 3.90x | 2.04x |
-   | Hero slide 3 | `gallery-graduation.png` 170x60 | **7.53x** | **7.05x** |
+   | Hero slide 1 | `hero-campus.png` 548x230 | 2.34x | 2.34x |
+   | Hero slide 2 | `about-campus.png` 328x220 | 3.90x | 2.32x |
+   | Hero slide 3 | `hero-campus.png` 548x230, alt crop | 2.34x | 2.22x |
    | News cards | ~205x80 | 1.78x | 1.44x |
    | Gallery tiles | ~170x60 | 2.88x | 1.72x |
 
-   Hero slide 3 is by far the worst: a gallery thumbnail is being stretched across the full
-   width of the page. A real photograph at roughly 2400x1000 fixes it outright. News cards
-   use a 112px side thumbnail on phones rather than a full-width banner, which is why they
-   stay reasonably crisp.
+   Hero slide 3 was originally `gallery-graduation.png`, a 170x60 gallery thumbnail, which
+   stretched to 7.5x across the full page width and was visibly mushy. It now reuses the
+   campus photograph at a different crop (`.hero__media--alt`). **Restore the graduation
+   photo as soon as a full-size one exists** by pointing that slide's `src` back at
+   `assets/img/gallery-graduation.png`; there is a comment in `index.html` marking the spot.
+
+   News cards use a 112px side thumbnail on phones rather than a full-width banner, which is
+   why they stay reasonably crisp.
 3. **Placeholder content.** Contact details, fees, results, term dates, staff names and news
    items are realistic drafts, not the school's real data, so replace them before publishing. The
    homepage news and events reproduce the dates shown in the mockup (Aug/Sep 2025), while the
@@ -145,17 +149,71 @@ These need a decision or a backend before the site goes live:
 
 ## Portal accounts
 
-The site is static, so it has no user accounts, no database and no way to verify who a
-visitor is. Any real portal (including a "sign up and upload a photo for the admin to
-approve" flow) needs server-side pieces this repo does not have yet:
+**Decision: the site ships with no sign-in and no sign-up.** Accounts are issued by the
+school office, and the Students and Parents pages say so. Everything below is the design
+to build against when a backend exists; nothing here is implemented yet.
 
-- a database of students, parents and staff;
-- authentication with hashed passwords and session or token handling;
-- file upload and private storage for identity photos, which are personal data about
-  children and must not sit in a public folder;
-- an admin review screen to approve or reject each request;
-- email or SMS to tell the applicant the outcome.
+### Why there is no public sign-up
 
-Until that exists, issuing accounts through the school office is the safer arrangement:
-the school already knows who its students are, so there is nothing for an outsider to
-slip through.
+Self-registration on a school site has no way to tell an enrolled student from anyone else
+on the internet. The school already holds the authoritative answer in the admission
+register, so verification should start from that register rather than from a stranger's
+submission.
+
+A "sign up and upload a photo of yourself for an admin to approve" flow was considered and
+rejected:
+
+- It does not verify anything. Whoever reviews signups will not recognise most of 500+
+  students by face; and where they do recognise someone, checking the name against the
+  register would have been enough on its own.
+- It is trivially defeated. Any photo of any student in uniform passes, including ones
+  taken from this site's own gallery page.
+- It collects facial photographs of minors from unidentified submitters. Nigeria's Data
+  Protection Act 2023 treats children's data with heightened care and parental consent,
+  so that is a standing obligation taken on in exchange for a control that does not work.
+  An open upload pointed at a staff review queue also invites content nobody wants there.
+- Someone has to review every request, forever, for a weak signal.
+
+Note that sign-in and sign-up are separate things. Removing self-registration is the point;
+sign-in was removed only because there is no backend behind it yet, and a login form that
+authenticates nothing is worse than none.
+
+### Recommended: school-issued accounts
+
+Simplest and strongest for a single school, and what the site currently describes:
+
+1. ICT bulk-creates accounts from the admission register at the start of each term.
+2. Form teachers hand each student a slip with a username and a one-time password.
+3. Parents receive theirs by SMS or email to the number already held on file.
+
+No review queue, no upload handling, no self-service fraud surface.
+
+### If self-service is wanted later: claim, do not create
+
+Reduces office workload without letting anyone register from outside:
+
+1. Student or parent enters admission number plus date of birth.
+2. Server checks both against the register, and that the account is not already claimed.
+3. A one-time code is sent to the phone or email **already on file** for that family. It is
+   never sent to an address supplied in the form.
+4. They enter the code and set their own password.
+
+An outsider fails at step 2 (needs a real admission number) or step 3 (needs access to that
+family's phone or email). No admin review, no photographs.
+
+Build notes: rate-limit step 1 per IP and per admission number so the register cannot be
+enumerated; expire codes in ~10 minutes and allow a small number of attempts; return the
+same response whether or not the admission number exists, so the form cannot be used to
+confirm who attends the school; store passwords with a slow hash such as argon2 or bcrypt.
+
+### Where a photograph does belong
+
+As a student ID photo taken by the school at enrolment and shown to staff inside the
+portal: the school's own photograph of its own student, not an unverified upload.
+
+### What this needs
+
+The site is static today. Either flow requires a backend, roughly: Vercel plus a managed
+Postgres (Neon or Supabase), an auth library for sessions and password hashing, and the
+admission register loaded as data. The claim flow itself is a few hundred lines; getting
+clean register data in is usually the larger job.
