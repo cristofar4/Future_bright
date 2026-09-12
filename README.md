@@ -1,16 +1,16 @@
-# Bright Future Secondary School — Website
+# Bright Future Secondary School - Website
 
 A static, dependency-free website for Bright Future Secondary School, Lagos, built to match
 the supplied homepage design (kept for reference at [`design/homepage-mockup.png`](design/homepage-mockup.png)).
 
-Plain HTML, CSS and vanilla JavaScript — no build step, no framework, no package manager.
+Plain HTML, CSS and vanilla JavaScript, with no build step, no framework, no package manager.
 Open `index.html` in a browser and it works.
 
 ## Pages
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Homepage — hero carousel, quick links, about, academics, admissions, news & events, gallery, portals, testimonials |
+| `index.html` | Homepage: hero carousel, quick links, about, academics, admissions, news & events, gallery, portals, testimonials |
 | `about.html` | Mission, vision, values, school history, leadership team, facilities |
 | `academics.html` | JSS/SSS curriculum, teaching approach, WAEC results, school calendar |
 | `admissions.html` | Application steps, requirements, key dates, fees, application form, FAQ |
@@ -41,7 +41,7 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-Opening `index.html` directly from the filesystem also works — nothing depends on a server.
+Opening `index.html` directly from the filesystem also works; nothing depends on a server.
 
 ## Design system
 
@@ -64,7 +64,7 @@ attribute and silently does nothing if the markup isn't on the page:
 
 | Attribute | Behaviour |
 | --- | --- |
-| `data-hero` | Hero carousel — arrows, auto-advance every 7s, pauses on hover/focus |
+| `data-hero` | Hero carousel: arrows, auto-advance every 7s, pauses on hover/focus |
 | `data-rail` | Horizontal scrolling rail (homepage gallery) |
 | `data-testimonials` | Testimonial rotator with generated dot navigation |
 | `data-count-to` | Counts a statistic up when it scrolls into view |
@@ -75,7 +75,7 @@ attribute and silently does nothing if the markup isn't on the page:
 | `data-demo-form` | Client-side form validation and confirmation message |
 | `.reveal` | Fade/slide element in on scroll |
 
-`prefers-reduced-motion` is respected throughout — auto-advancing carousels, counters and
+`prefers-reduced-motion` is respected throughout: auto-advancing carousels, counters and
 reveal animations all stand down.
 
 ## Accessibility & responsiveness
@@ -91,17 +91,63 @@ reveal animations all stand down.
 
 These need a decision or a backend before the site goes live:
 
-1. **Forms are front-end only.** The application, contact, newsletter and both portal
-   sign-in forms validate and show a confirmation, but submit nowhere. Each one says so
-   on the page. Point them at a real endpoint (or a form service) when one exists.
+1. **Forms are front-end only.** The application, contact and newsletter forms validate and
+   show a confirmation, but submit nowhere. Each one says so on the page. Point them at a
+   real endpoint (or a form service) when one exists.
 2. **Images are low-resolution.** The photography was extracted from the design mockup at
-   thumbnail size, so it is soft when scaled up. Drop higher-resolution files into
-   `assets/img/` using the same filenames and every page picks them up.
+   thumbnail size (as small as 170x60), so it goes soft when scaled up. No code change can
+   add detail back; the fix is real photographs. `hero-campus.png` and `about-campus.png`
+   were additionally cropped, because the mockup's own hero copy, carousel pill and quote
+   card were baked into those crops and showed through as ghost UI.
+
+   Drop replacements into `assets/img/` using the **same filenames** and every page picks
+   them up automatically. Everything uses `object-fit: cover`, so exact aspect ratios are
+   forgiving. Suggested sizes (roughly 2x the largest display size, for sharp rendering on
+   high-density screens):
+
+   | File | Now | Suggested | Shown as |
+   | --- | --- | --- | --- |
+   | `hero-campus.png` | 548x230 | 2400x1000 | Full-width homepage hero |
+   | `about-campus.png` | 328x220 | 1200x800 | About figure, ~590x330 |
+   | `admissions-student.png` | 220x165 | 700x760 | Admissions promo, portrait crop |
+   | `news-academic-session.png` | 205x80 | 800x450 | News card, 16:9 |
+   | `news-sports.png` | 220x80 | 800x450 | News card, 16:9 |
+   | `news-ict.png` | 175x80 | 800x450 | News card, 16:9 |
+   | `gallery-*.png` (5 files) | ~170x60 | 900x560 | Gallery tiles, 16:10 |
+
+   Layout already limits the damage in the meantime: on phones the hero photo renders as a
+   band *below* its native width (0.74x, sharp) rather than being blown up 4x, and news
+   cards use a 112px side thumbnail instead of a full-width banner. Hero slides 2 and 3
+   dropped their photos for CSS gradient panels, which stay sharp at any size. To put a
+   photo back on one of those slides, swap `<div class="hero__media hero__media--admissions">`
+   for the `<div class="hero__media"><img ...></div>` markup used by slide 1.
 3. **Placeholder content.** Contact details, fees, results, term dates, staff names and news
-   items are realistic drafts, not the school's real data — replace before publishing. The
+   items are realistic drafts, not the school's real data, so replace them before publishing. The
    homepage news and events reproduce the dates shown in the mockup (Aug/Sep 2025), while the
    footer copyright year is generated from the visitor's clock, so the two will disagree until
    the content is refreshed.
 4. **Contact page map** is a styled placeholder pending the school's exact coordinates.
 5. **Search** is a UI shell; it reports that lookup isn't connected yet.
 6. **Social and legal links** (`href="#"`) need real destinations.
+7. **There is no sign-in or account creation.** The header Login menu and both portal
+   sign-in forms were removed deliberately, so no visitor can create an account for
+   themselves. The Students and Parents pages now explain that portal accounts are issued
+   by the school office. Adding real accounts means adding a backend: see
+   "Portal accounts" below.
+
+## Portal accounts
+
+The site is static, so it has no user accounts, no database and no way to verify who a
+visitor is. Any real portal (including a "sign up and upload a photo for the admin to
+approve" flow) needs server-side pieces this repo does not have yet:
+
+- a database of students, parents and staff;
+- authentication with hashed passwords and session or token handling;
+- file upload and private storage for identity photos, which are personal data about
+  children and must not sit in a public folder;
+- an admin review screen to approve or reject each request;
+- email or SMS to tell the applicant the outcome.
+
+Until that exists, issuing accounts through the school office is the safer arrangement:
+the school already knows who its students are, so there is nothing for an outsider to
+slip through.

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Bright Future Secondary School — site behaviour
+   Bright Future Secondary School - site behaviour
    Vanilla JS, no dependencies. Every widget is optional per page.
    ========================================================================== */
 (function () {
@@ -64,7 +64,7 @@
         var status = panel.querySelector("[data-search-status]");
         if (status) {
           status.textContent = term
-            ? 'Site search is not connected yet — "' + term + '" could not be looked up.'
+            ? 'Site search is not connected yet. "' + term + '" could not be looked up.'
             : "Type a word or phrase to search the site.";
         }
       });
@@ -295,7 +295,7 @@
         var status = form.querySelector("[data-form-status]");
         if (status) {
           status.textContent = form.getAttribute("data-success-message") ||
-            "Thank you — your message has been recorded. We will be in touch shortly.";
+            "Thank you. Your message has been recorded. We will be in touch shortly.";
         }
         form.reset();
       });

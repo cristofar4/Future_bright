@@ -53,17 +53,6 @@
     <div class="header-actions">
       <button class="icon-btn" type="button" data-search-toggle aria-expanded="false" aria-controls="search-panel" aria-label="Search the site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
 
-      <div class="dropdown" data-dropdown>
-        <button class="btn btn--sm dropdown__toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-label="Login">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg><span>Login</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="dropdown__menu" role="menu">
-          <a href="students.html#portal" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5L12 4l10 4.5-10 4.5z"/><path d="M6 11v4.6c0 1.6 2.7 2.9 6 2.9s6-1.3 6-2.9V11"/><path d="M21 9v5"/></svg>Student Portal</a>
-          <a href="parents.html#portal" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7.5" r="2.8"/><circle cx="17" cy="7.5" r="2.8"/><path d="M2.5 18.5a4.5 4.5 0 019 0M12.5 18.5a4.5 4.5 0 019 0"/></svg>Parent Portal</a>
-          <a href="contact.html#staff" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 19a6.5 6.5 0 0113 0"/><path d="M16.5 5.3a3.4 3.4 0 010 5.4M18 19a6.6 6.6 0 00-2.2-4.4"/></svg>Staff Portal</a>
-          <a href="students.html#elearning" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4.5" width="16" height="11" rx="2"/><path d="M2 19h20"/></svg>e-Learning</a>
-        </div>
-      </div>
 
       <button class="icon-btn nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-nav" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
@@ -104,9 +93,7 @@
     </article>
 
     <article class="hero__slide" aria-hidden="true">
-      <div class="hero__media">
-        <img src="assets/img/about-campus.png" alt="Students on the school grounds between lessons" loading="lazy">
-      </div>
+      <div class="hero__media hero__media--admissions" role="presentation"></div>
       <div class="container">
         <div class="hero__inner">
           <p class="hero__eyebrow">Admissions open for 2025/2026</p>
@@ -121,9 +108,7 @@
     </article>
 
     <article class="hero__slide" aria-hidden="true">
-      <div class="hero__media">
-        <img src="assets/img/gallery-graduation.png" alt="Graduating students in caps and gowns" loading="lazy">
-      </div>
+      <div class="hero__media hero__media--results" role="presentation"></div>
       <div class="container">
         <div class="hero__inner">
           <p class="hero__eyebrow">Class of 2025</p>
@@ -392,7 +377,7 @@
           <div class="event__date"><span class="event__day">25</span><span class="event__mon">Aug</span></div>
           <div class="event__info">
             <h3>Parent-Teacher Meeting</h3>
-            <p class="event__meta">9:00 AM &ndash; 12:00 PM &bull; School Hall</p>
+            <p class="event__meta">9:00 AM - 12:00 PM &bull; School Hall</p>
           </div>
         </div>
 
@@ -400,7 +385,7 @@
           <div class="event__date"><span class="event__day">02</span><span class="event__mon">Sep</span></div>
           <div class="event__info">
             <h3>Debate Competition</h3>
-            <p class="event__meta">10:00 AM &ndash; 1:00 PM &bull; Multi-purpose Hall</p>
+            <p class="event__meta">10:00 AM - 1:00 PM &bull; Multi-purpose Hall</p>
           </div>
         </div>
 
@@ -408,7 +393,7 @@
           <div class="event__date"><span class="event__day">15</span><span class="event__mon">Sep</span></div>
           <div class="event__info">
             <h3>End of Term Exams</h3>
-            <p class="event__meta">8:00 AM &ndash; 3:00 PM &bull; Classrooms</p>
+            <p class="event__meta">8:00 AM - 3:00 PM &bull; Classrooms</p>
           </div>
         </div>
 
@@ -416,7 +401,7 @@
           <div class="event__date"><span class="event__day">22</span><span class="event__mon">Sep</span></div>
           <div class="event__info">
             <h3>Inter-House Cultural Day</h3>
-            <p class="event__meta">9:00 AM &ndash; 2:00 PM &bull; School Field</p>
+            <p class="event__meta">9:00 AM - 2:00 PM &bull; School Field</p>
           </div>
         </div>
       </aside>
@@ -459,7 +444,7 @@
 
       <div class="portal-card">
         <h3>Quick Access</h3>
-        <p>Jump to your portal.</p>
+        <p>Portal accounts are issued by the school office.</p>
         <div class="portal-grid">
           <a class="portal-link" href="students.html#portal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5L12 4l10 4.5-10 4.5z"/><path d="M6 11v4.6c0 1.6 2.7 2.9 6 2.9s6-1.3 6-2.9V11"/><path d="M21 9v5"/></svg>Student Portal</a>
           <a class="portal-link" href="parents.html#portal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7.5" r="2.8"/><circle cx="17" cy="7.5" r="2.8"/><path d="M2.5 18.5a4.5 4.5 0 019 0M12.5 18.5a4.5 4.5 0 019 0"/></svg>Parent Portal</a>
@@ -475,7 +460,7 @@
           <span class="testimonial__avatar" aria-hidden="true">CO</span>
           <div>
             <blockquote>&ldquo;Bright Future Secondary School has given me confidence, great friends and the skills I need for my future. I&rsquo;m proud to be a student here!&rdquo;</blockquote>
-            <cite>&ndash; Chidera Okafor <span>SS2 Student</span></cite>
+            <cite>- Chidera Okafor <span>SS2 Student</span></cite>
           </div>
         </figure>
 
@@ -483,15 +468,15 @@
           <span class="testimonial__avatar" style="background:var(--green)" aria-hidden="true">AB</span>
           <div>
             <blockquote>&ldquo;The teachers know my son by name and by need. In two terms his reading and his confidence have both changed completely.&rdquo;</blockquote>
-            <cite>&ndash; Mrs. Amina Bello <span>Parent, JSS2</span></cite>
+            <cite>- Mrs. Amina Bello <span>Parent, JSS2</span></cite>
           </div>
         </figure>
 
         <figure class="testimonial" style="margin:0">
           <span class="testimonial__avatar" style="background:var(--purple)" aria-hidden="true">TA</span>
           <div>
-            <blockquote>&ldquo;I left here for university with more than good grades &mdash; I left knowing how to think, speak up and lead a team.&rdquo;</blockquote>
-            <cite>&ndash; Tunde Adeyemi <span>Alumnus, Class of 2021</span></cite>
+            <blockquote>&ldquo;I left here for university with more than good grades. I left knowing how to think, speak up and lead a team.&rdquo;</blockquote>
+            <cite>- Tunde Adeyemi <span>Alumnus, Class of 2021</span></cite>
           </div>
         </figure>
 

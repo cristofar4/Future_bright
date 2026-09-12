@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Bright Future Secondary School — Design System
+   Bright Future Secondary School - Design System
    ========================================================================== */
 
 /* --- Tokens ------------------------------------------------------------- */
@@ -228,6 +228,24 @@ ul { margin: 0; padding: 0; list-style: none; }
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(100deg, rgba(8,28,62,.96) 0%, rgba(8,28,62,.9) 32%, rgba(8,28,62,.55) 55%, rgba(8,28,62,.25) 100%);
 }
+
+/* Photo-free slides: sharp at any size, no upscaling of a small source image. */
+.hero__media--admissions {
+  background:
+    radial-gradient(120% 130% at 88% 12%, rgba(43,133,245,.55) 0%, rgba(43,133,245,0) 58%),
+    radial-gradient(90% 110% at 8% 96%, rgba(23,162,184,.36) 0%, rgba(23,162,184,0) 60%),
+    linear-gradient(118deg, var(--navy-900) 6%, var(--navy-700) 52%, var(--blue-700) 100%);
+}
+.hero__media--results {
+  background:
+    radial-gradient(115% 125% at 82% 88%, rgba(139,63,196,.42) 0%, rgba(139,63,196,0) 58%),
+    radial-gradient(95% 115% at 12% 6%, rgba(43,133,245,.5) 0%, rgba(43,133,245,0) 62%),
+    linear-gradient(122deg, var(--navy-900) 10%, var(--navy-800) 46%, var(--blue-700) 100%);
+}
+.hero__media--admissions::after,
+.hero__media--results::after {
+  background: linear-gradient(100deg, rgba(8,28,62,.9) 0%, rgba(8,28,62,.7) 38%, rgba(8,28,62,.12) 100%);
+}
 .hero__inner { position: relative; z-index: 2; padding-block: clamp(56px, 8vw, 104px); max-width: 660px; }
 .hero__eyebrow {
   font-family: var(--font-head); font-size: .8rem; font-weight: 700;
@@ -418,6 +436,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .rail-btn--next { right: -14px; }
 
 .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.photo-grid .gallery-item { aspect-ratio: 16 / 10; }
 
 /* --- Bottom band -------------------------------------------------------- */
 .bottom-band { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 18px; align-items: stretch; }
@@ -437,6 +456,13 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 .portal-link:hover { background: rgba(255,255,255,.18); color: #fff; }
 .portal-link svg { width: 15px; height: 15px; color: #7cb8ff; flex: none; }
+
+.portal-contact { margin: 1.1rem 0 0; display: grid; gap: .55rem; }
+.portal-contact li { display: flex; gap: .6rem; align-items: center; font-size: .85rem; }
+.portal-contact svg { width: 16px; height: 16px; flex: none; color: #7cb8ff; }
+.portal-contact a { color: #fff; font-weight: 600; }
+.portal-contact a:hover { color: #cfe3ff; }
+.portal-card .card__icon { background: rgba(255,255,255,.14); }
 
 .testimonial-card {
   background: #fff; border: 1px solid var(--line); border-radius: var(--radius-lg);
@@ -513,8 +539,11 @@ tbody tr:last-child td { border-bottom: 0; }
   display: flex; justify-content: space-between; gap: 1rem; align-items: center;
 }
 .accordion-item summary::-webkit-details-marker { display: none; }
-.accordion-item summary::after { content: "+"; color: var(--blue-600); font-size: 1.3rem; line-height: 1; }
-.accordion-item[open] summary::after { content: "–"; }
+.accordion-item summary::after {
+  content: "+"; color: var(--blue-600); font-size: 1.3rem; line-height: 1;
+  transition: transform .2s ease;
+}
+.accordion-item[open] summary::after { transform: rotate(45deg); }
 .accordion-item p { padding: 0 1.1rem 1rem; margin: 0; font-size: .9rem; color: var(--muted); }
 
 .contact-list li { display: flex; gap: .7rem; align-items: flex-start; margin-bottom: 1rem; font-size: .92rem; }
@@ -620,6 +649,14 @@ tbody tr:last-child td { border-bottom: 0; }
   .quicklinks__grid { grid-template-columns: repeat(2, 1fr); }
   .subjects { grid-template-columns: repeat(2, 1fr); }
   .news-grid { grid-template-columns: 1fr; }
+
+  /* A 205x80 source stretched to a 350px-wide banner looked soft; a 112px
+     thumbnail displays it below native width instead. */
+  .news-card { flex-direction: row; }
+  .news-card__media { flex: none; width: 112px; aspect-ratio: auto; }
+  .news-card__body { padding: .75rem .85rem .85rem; }
+  .news-card h3 { font-size: .93rem; }
+  .news-card p { display: none; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .photo-grid { grid-template-columns: repeat(2, 1fr); }
   .gallery-track { grid-auto-columns: calc((100% - 14px) / 2); }
@@ -627,7 +664,16 @@ tbody tr:last-child td { border-bottom: 0; }
   .admissions-promo__media img { min-height: 190px; }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 22px; }
   .cta-card { flex-direction: column; align-items: flex-start; text-align: left; }
-  .hero__inner { padding-block: 46px 64px; }
+  .hero__inner { padding-block: 28px 58px; }
+
+  /* Full-bleed cover scaled the 674x230 photo ~4x on a phone. Stacking it into a
+     band above the copy displays it below native width, so it stays sharp. */
+  .hero__media { position: static; }
+  .hero__media img { height: auto; aspect-ratio: 16 / 7; }
+  .hero__media::after { display: none; }
+  .hero__media--admissions,
+  .hero__media--results { aspect-ratio: 16 / 7; }
+  .hero__controls { bottom: 12px; right: 12px; }
 
   .brand__tag { display: none; }
   .brand { gap: .5rem; }
