@@ -228,7 +228,16 @@ ul { margin: 0; padding: 0; list-style: none; }
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(100deg, rgba(8,28,62,.96) 0%, rgba(8,28,62,.9) 32%, rgba(8,28,62,.55) 55%, rgba(8,28,62,.25) 100%);
 }
-
+.hero__inner { position: relative; z-index: 2; padding-block: clamp(56px, 8vw, 104px); max-width: 660px; }
+.hero__eyebrow {
+  font-family: var(--font-head); font-size: .8rem; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase; color: #a9ccff; margin: 0 0 1rem;
+}
+.hero h1 { color: #fff; margin-bottom: 1rem; }
+.hero h1 .text-accent { color: #4a9bff; }
+.hero p { color: rgba(255,255,255,.88); font-size: 1.04rem; max-width: 34em; margin-bottom: 1.7rem; }
+.hero p .text-accent { color: #7cb8ff; font-weight: 600; }
+.hero__actions { display: flex; flex-wrap: wrap; gap: .7rem; }
 
 .hero__controls {
   position: absolute; right: 20px; bottom: 18px; z-index: 3;
