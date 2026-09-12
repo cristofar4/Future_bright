@@ -115,12 +115,20 @@ These need a decision or a backend before the site goes live:
    | `news-ict.png` | 175x80 | 800x450 | News card, 16:9 |
    | `gallery-*.png` (5 files) | ~170x60 | 900x560 | Gallery tiles, 16:10 |
 
-   Layout already limits the damage in the meantime: on phones the hero photo renders as a
-   band *below* its native width (0.74x, sharp) rather than being blown up 4x, and news
-   cards use a 112px side thumbnail instead of a full-width banner. Hero slides 2 and 3
-   dropped their photos for CSS gradient panels, which stay sharp at any size. To put a
-   photo back on one of those slides, swap `<div class="hero__media hero__media--admissions">`
-   for the `<div class="hero__media"><img ...></div>` markup used by slide 1.
+   Current magnification, measured in Chromium (`object-fit: cover`, so the larger axis wins):
+
+   | Where | Source | Desktop | Phone |
+   | --- | --- | --- | --- |
+   | Hero slide 1 | `hero-campus.png` 548x230 | 2.34x | 2.06x |
+   | Hero slide 2 | `about-campus.png` 328x220 | 3.90x | 2.04x |
+   | Hero slide 3 | `gallery-graduation.png` 170x60 | **7.53x** | **7.05x** |
+   | News cards | ~205x80 | 1.78x | 1.44x |
+   | Gallery tiles | ~170x60 | 2.88x | 1.72x |
+
+   Hero slide 3 is by far the worst: a gallery thumbnail is being stretched across the full
+   width of the page. A real photograph at roughly 2400x1000 fixes it outright. News cards
+   use a 112px side thumbnail on phones rather than a full-width banner, which is why they
+   stay reasonably crisp.
 3. **Placeholder content.** Contact details, fees, results, term dates, staff names and news
    items are realistic drafts, not the school's real data, so replace them before publishing. The
    homepage news and events reproduce the dates shown in the mockup (Aug/Sep 2025), while the

@@ -229,33 +229,6 @@ ul { margin: 0; padding: 0; list-style: none; }
   background: linear-gradient(100deg, rgba(8,28,62,.96) 0%, rgba(8,28,62,.9) 32%, rgba(8,28,62,.55) 55%, rgba(8,28,62,.25) 100%);
 }
 
-/* Photo-free slides: sharp at any size, no upscaling of a small source image. */
-.hero__media--admissions {
-  background:
-    radial-gradient(120% 130% at 88% 12%, rgba(43,133,245,.55) 0%, rgba(43,133,245,0) 58%),
-    radial-gradient(90% 110% at 8% 96%, rgba(23,162,184,.36) 0%, rgba(23,162,184,0) 60%),
-    linear-gradient(118deg, var(--navy-900) 6%, var(--navy-700) 52%, var(--blue-700) 100%);
-}
-.hero__media--results {
-  background:
-    radial-gradient(115% 125% at 82% 88%, rgba(139,63,196,.42) 0%, rgba(139,63,196,0) 58%),
-    radial-gradient(95% 115% at 12% 6%, rgba(43,133,245,.5) 0%, rgba(43,133,245,0) 62%),
-    linear-gradient(122deg, var(--navy-900) 10%, var(--navy-800) 46%, var(--blue-700) 100%);
-}
-.hero__media--admissions::after,
-.hero__media--results::after {
-  background: linear-gradient(100deg, rgba(8,28,62,.9) 0%, rgba(8,28,62,.7) 38%, rgba(8,28,62,.12) 100%);
-}
-.hero__inner { position: relative; z-index: 2; padding-block: clamp(56px, 8vw, 104px); max-width: 660px; }
-.hero__eyebrow {
-  font-family: var(--font-head); font-size: .8rem; font-weight: 700;
-  letter-spacing: .16em; text-transform: uppercase; color: #a9ccff; margin: 0 0 1rem;
-}
-.hero h1 { color: #fff; margin-bottom: 1rem; }
-.hero h1 .text-accent { color: #4a9bff; }
-.hero p { color: rgba(255,255,255,.88); font-size: 1.04rem; max-width: 34em; margin-bottom: 1.7rem; }
-.hero p .text-accent { color: #7cb8ff; font-weight: 600; }
-.hero__actions { display: flex; flex-wrap: wrap; gap: .7rem; }
 
 .hero__controls {
   position: absolute; right: 20px; bottom: 18px; z-index: 3;
@@ -276,9 +249,6 @@ ul { margin: 0; padding: 0; list-style: none; }
 .page-hero .container { padding-block: clamp(40px, 5vw, 66px); }
 .page-hero h1 { color: #fff; margin-bottom: .5rem; }
 .page-hero p { color: rgba(255,255,255,.85); max-width: 46em; margin: 0; }
-.breadcrumb { display: flex; gap: .45rem; align-items: center; font-size: .82rem; color: rgba(255,255,255,.7); margin-bottom: .9rem; }
-.breadcrumb a { color: rgba(255,255,255,.82); font-weight: 600; }
-.breadcrumb a:hover { color: #fff; }
 
 /* --- Quick links strip -------------------------------------------------- */
 .quicklinks { background: var(--soft); border-bottom: 1px solid var(--line); }
@@ -664,16 +634,7 @@ tbody tr:last-child td { border-bottom: 0; }
   .admissions-promo__media img { min-height: 190px; }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 22px; }
   .cta-card { flex-direction: column; align-items: flex-start; text-align: left; }
-  .hero__inner { padding-block: 28px 58px; }
-
-  /* Full-bleed cover scaled the 674x230 photo ~4x on a phone. Stacking it into a
-     band above the copy displays it below native width, so it stays sharp. */
-  .hero__media { position: static; }
-  .hero__media img { height: auto; aspect-ratio: 16 / 7; }
-  .hero__media::after { display: none; }
-  .hero__media--admissions,
-  .hero__media--results { aspect-ratio: 16 / 7; }
-  .hero__controls { bottom: 12px; right: 12px; }
+  .hero__inner { padding-block: 46px 64px; }
 
   .brand__tag { display: none; }
   .brand { gap: .5rem; }
