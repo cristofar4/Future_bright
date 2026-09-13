@@ -8,6 +8,12 @@
 
   var MIN_PASSWORD = 10;
 
+  // Where a preview account is kept when there is no database. Identifying
+  // details only: a password is never stored, because nothing checks one.
+  var PREVIEW_KEY = "bfss_preview_account";
+
+  var MODE = null;
+
   // Each role asks for a different reference, and teachers have no class.
   var ROLE_FIELDS = {
     student: {
@@ -199,17 +205,20 @@
     try {
       var res = await fetch("/api/auth/mode", { credentials: "same-origin" });
       mode = await res.json();
+      MODE = mode;
     } catch (err) {
       return;                                   // leave the default wording
     }
 
     if (!mode.configured) {
-      note.innerHTML = "<strong>The portal is not connected to a database yet.</strong> " +
-        "Sign-up will not work until one is attached. " +
-        '<a href="setup.html">See what is missing</a>, or ' +
-        '<a href="portal.html?demo=1">open the demo preview</a> in the meantime.';
+      note.innerHTML = "<strong>No database is attached yet, so real accounts cannot be created.</strong> " +
+        "Fill this in anyway and you will get a preview of the portal with your own details, " +
+        "kept in this browser only. Nothing is sent to the school. " +
+        '<a href="setup.html">Attach a database</a> when you want accounts that actually save.';
       note.hidden = false;
       if (registerNote) { registerNote.hidden = true; }
+      var submitText = document.querySelector("[data-submit-text]");
+      if (submitText) { submitText.textContent = "Preview the Portal"; }
       return;
     }
 
@@ -251,6 +260,29 @@
         names.forEach(function (n) { setFieldError(form, n, problems[n]); });
         var first = form.elements[names[0]];
         if (first && first.focus) { first.focus(); }
+        return;
+      }
+
+      // No database: keep the details on this device and show the portal with
+      // them, rather than refusing and leaving nothing to look at.
+      if (MODE && MODE.configured === false) {
+        try {
+          window.localStorage.setItem(PREVIEW_KEY, JSON.stringify({
+            fullName: data.fullName,
+            email: data.email,
+            phone: data.phone,
+            reference: data.reference,
+            classLevel: data.classLevel,
+            role: data.role,
+          }));
+        } catch (err) {
+          showAlert(form, "This browser is blocking local storage, so the preview cannot be saved. " +
+                          "Try again outside private browsing.");
+          return;
+        }
+        showAlert(form, "Preview ready, " + data.fullName +
+                        ". Remember: this is saved on this device only, not at the school.", "ok");
+        window.setTimeout(function () { window.location.href = "portal.html?demo=1"; }, 1400);
         return;
       }
 

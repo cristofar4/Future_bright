@@ -12,6 +12,22 @@
   var PAGE = document.body.getAttribute("data-portal-page") || "dashboard";
   var DEMO = new URLSearchParams(window.location.search).get("demo") === "1";
 
+  // Details someone entered on the sign-up form while no database was attached.
+  var PREVIEW_KEY = "bfss_preview_account";
+
+  function previewAccount() {
+    try {
+      var raw = window.localStorage.getItem(PREVIEW_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;                              // private browsing, or corrupt
+    }
+  }
+
+  function clearPreview() {
+    try { window.localStorage.removeItem(PREVIEW_KEY); } catch (err) { /* nothing to do */ }
+  }
+
   var ACCENTS = { blue:"bg-blue", green:"bg-green", purple:"bg-purple",
                   orange:"bg-orange", teal:"bg-teal", pink:"bg-pink", navy:"bg-navy" };
 
@@ -83,6 +99,22 @@
   /* --- shared pieces ---------------------------------------------------- */
   function applyIdentity(data) {
     var s = data.student || {};
+
+    // In preview, show the person who filled the form rather than the sample pupil.
+    var mine = DEMO ? previewAccount() : null;
+    if (mine && mine.fullName) {
+      var words = mine.fullName.split(/\s+/).filter(Boolean);
+      s = Object.assign({}, s, {
+        fullName: mine.fullName,
+        firstName: words[0] || s.firstName,
+        initials: words.slice(0, 2).map(function (w) { return w[0].toUpperCase(); }).join(""),
+        admissionNo: mine.reference || s.admissionNo,
+        className: (mine.classLevel || "") ? mine.classLevel + "A" : s.className,
+        email: mine.email || s.email,
+        phone: mine.phone || s.phone,
+      });
+      data = Object.assign({}, data, { student: s });
+    }
     setAll("[data-name]", s.fullName || "");
     setAll("[data-initials]", s.initials || "");
     setAll("[data-class]", s.className || "-");
@@ -470,7 +502,28 @@
         }
       });
       var banner = document.querySelector("[data-demo-banner]");
-      if (banner) { banner.classList.remove("is-hidden"); }
+      if (banner) {
+        banner.classList.remove("is-hidden");
+        var mine = previewAccount();
+        if (mine) {
+          var text = banner.querySelector("span");
+          if (text) {
+            text.innerHTML =
+              "<strong>Preview on this device.</strong> These are the details you typed, kept in this " +
+              "browser only. No account exists at the school and nothing was sent to it. " +
+              '<a href="setup.html">Attach a database</a> for real accounts, or ' +
+              '<a href="#" data-clear-preview>clear this preview</a>.';
+            var clear = text.querySelector("[data-clear-preview]");
+            if (clear) {
+              clear.addEventListener("click", function (e) {
+                e.preventDefault();
+                clearPreview();
+                window.location.href = "signup.html";
+              });
+            }
+          }
+        }
+      }
     }
 
     var search = document.querySelector("[data-portal-search]");

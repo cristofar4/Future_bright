@@ -394,6 +394,17 @@ not built yet.
 Grades on the results page follow the WAEC scale (A1 75+, B2 70-74, B3 65-69, C4 60-64,
 C5 55-59, C6 50-54, D7 45-49, E8 40-44, F9 below 40).
 
+### Signing up before a database exists
+
+If no `DATABASE_URL` is attached, the sign-up form still works, but as a preview: the
+details are kept in `localStorage` on that device and the portal shows them instead of the
+sample pupil. The page says so before submitting, the confirmation repeats it, and a banner
+on every portal page states that no account exists at the school and nothing was sent to it,
+with a link to clear it.
+
+No password is stored, because nothing checks one. This is a way to look around before
+committing to a database, not an account system: real accounts need `DATABASE_URL`.
+
 ### Demo preview
 
 Add `?demo=1` to any portal page to see it with a fixed sample student, with no account and
