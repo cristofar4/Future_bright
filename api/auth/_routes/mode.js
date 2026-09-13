@@ -6,7 +6,7 @@
  * Deliberately says nothing about who is on the register and never echoes a
  * connection string or a raw driver error, only a category.
  */
-import { query } from "../../_lib/db.js";
+import { query, databaseUrlVar } from "../../_lib/db.js";
 import { json, methodNotAllowed } from "../../_lib/http.js";
 
 export default async function handler(req, res) {
@@ -21,12 +21,17 @@ export default async function handler(req, res) {
     openSignup: false,
     configured: false,   // kept for the sign-up page
     stage: "database",   // which step to do next
+    // Which variable the connection string came from. The name only, never the
+    // string: it says "yes, the one you set is the one being read".
+    databaseUrlVar: null,
   };
 
-  if (!process.env.DATABASE_URL) {
+  const varName = databaseUrlVar();
+  if (!varName) {
     state.stage = "database";
     return json(res, 200, state);
   }
+  state.databaseUrlVar = varName;
 
   try {
     // Cheap connectivity check that does not assume any table exists.

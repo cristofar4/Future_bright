@@ -72,7 +72,7 @@ Open `index.html` in a browser and it works.
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
 │   ├── test-portal.mjs           # 31 pupil dashboard tests
 │   ├── test-signup-mode.mjs      # 25 open/closed sign-up tests
-│   └── test-roles.mjs            # 91 parent / teacher / admin tests
+│   └── test-roles.mjs            # 98 parent / teacher / admin tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -282,7 +282,7 @@ npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
 npm run check        # deployment checks, no database needed
-npm test             # checks + 212 API tests, needs DATABASE_URL
+npm test             # checks + 219 API tests, needs DATABASE_URL
 npm run test:roles   # just the parent, teacher and admin dashboards
 ```
 
@@ -362,8 +362,14 @@ On Vercel the `api/` directory is picked up automatically. Set `DATABASE_URL` as
 environment variable (Neon, Supabase and Vercel Postgres all work; use their pooled
 connection string), then run `npm run db:setup` once against it and import the register.
 
-Without `DATABASE_URL` the marketing site still serves normally and the auth endpoints
+Without a connection string the marketing site still serves normally and the auth endpoints
 return 503 with a "contact the school office" message, rather than pretending to work.
+
+`DATABASE_URL` is the documented name, but Vercel's own Postgres and the Supabase and Neon
+integrations each set their own when you press "connect to project", so `POSTGRES_URL`,
+`DATABASE_URL_UNPOOLED` and `POSTGRES_URL_NON_POOLING` are accepted too (first one set
+wins). `setup.html` says which one it is reading, so a database connected through Vercel's
+UI does not look like it was ignored. The name only: never the string.
 
 ### API
 

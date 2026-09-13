@@ -3,9 +3,30 @@ import pg from "pg";
 
 let pool;
 
+/* DATABASE_URL is what we document, but Vercel's own Postgres and the Supabase
+ * and Neon integrations each set their own name when you click "connect to
+ * project". Accept those too, rather than making someone rename a variable
+ * they did not create. First one set wins. */
+const URL_VARS = [
+  "DATABASE_URL",
+  "POSTGRES_URL",
+  "DATABASE_URL_UNPOOLED",
+  "POSTGRES_URL_NON_POOLING",
+];
+
+/** The name of the variable the connection string came from, or null. */
+export function databaseUrlVar() {
+  return URL_VARS.find((name) => String(process.env[name] || "").trim()) || null;
+}
+
+export function databaseUrl() {
+  const name = databaseUrlVar();
+  return name ? String(process.env[name]).trim() : null;
+}
+
 export function getPool() {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
+    const connectionString = databaseUrl();
     if (!connectionString) {
       throw Object.assign(new Error("DATABASE_URL is not set"), { code: "NO_DATABASE" });
     }

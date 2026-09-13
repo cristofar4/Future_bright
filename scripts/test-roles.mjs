@@ -251,6 +251,50 @@ console.log("\ndemo preview, with no sign-in");
   check("an unknown preview section is refused", bad.status === 400, String(bad.status));
 }
 
+/* ------------------------------------------- finding the connection string */
+console.log("\nwhere the connection string is read from");
+{
+  const { databaseUrlVar } = await import("../api/_lib/db.js");
+  const saved = { ...process.env };
+  const clear = () => ["DATABASE_URL", "POSTGRES_URL", "DATABASE_URL_UNPOOLED",
+                       "POSTGRES_URL_NON_POOLING"].forEach((k) => delete process.env[k]);
+
+  clear();
+  check("nothing set means no database", databaseUrlVar() === null, String(databaseUrlVar()));
+
+  // Vercel's own Postgres, and the Supabase integration, set POSTGRES_URL when
+  // you connect a database to a project. Taking only DATABASE_URL would look
+  // to the person clicking through as if their database had been ignored.
+  clear();
+  process.env.POSTGRES_URL = "postgres://x@y/z";
+  check("POSTGRES_URL is accepted", databaseUrlVar() === "POSTGRES_URL", String(databaseUrlVar()));
+
+  clear();
+  process.env.POSTGRES_URL_NON_POOLING = "postgres://x@y/z";
+  check("POSTGRES_URL_NON_POOLING is accepted",
+    databaseUrlVar() === "POSTGRES_URL_NON_POOLING", String(databaseUrlVar()));
+
+  clear();
+  process.env.DATABASE_URL = "postgres://a@b/c";
+  process.env.POSTGRES_URL = "postgres://x@y/z";
+  check("DATABASE_URL wins when both are set", databaseUrlVar() === "DATABASE_URL", String(databaseUrlVar()));
+
+  clear();
+  process.env.DATABASE_URL = "   ";
+  process.env.POSTGRES_URL = "postgres://x@y/z";
+  check("an empty variable is not mistaken for one that is set",
+    databaseUrlVar() === "POSTGRES_URL", String(databaseUrlVar()));
+
+  clear();
+  Object.assign(process.env, saved);
+}
+
+const mode = await call("/api/auth/mode");
+check("mode names the variable it read", mode.body.databaseUrlVar === "DATABASE_URL",
+  String(mode.body.databaseUrlVar));
+check("mode never echoes the connection string itself",
+  !JSON.stringify(mode.body).includes("postgres"), JSON.stringify(mode.body));
+
 server.close();
 await closePool();
 console.log(`\n${pass} passed, ${fail} failed`);

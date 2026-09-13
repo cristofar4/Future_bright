@@ -63,13 +63,14 @@
     },
     database: {
       title: "Attach a database",
-      body: "Create a free Postgres at neon.tech, supabase.com, or under Storage in Vercel. Copy the " +
-            "connection string. In Vercel go to Settings, then Environment Variables, add DATABASE_URL " +
-            "with that value for all environments, and redeploy.",
+      body: "In Vercel, open your project, go to Storage and create a Postgres database, then connect it " +
+            "to this project: that sets the connection string for you. Or create one at neon.tech or " +
+            "supabase.com and add it yourself under Settings, then Environment Variables, as DATABASE_URL " +
+            "for all environments. Either way, redeploy afterwards.",
     },
     connection: {
       title: "The database refused the connection",
-      body: "DATABASE_URL is set but the database did not answer. Check the string was pasted whole, that " +
+      body: "The connection string is set but the database did not answer. Check it was pasted whole, that " +
             "the password is right, and that it ends with ?sslmode=require for a hosted provider. " +
             "Redeploy after changing it.",
     },
@@ -132,6 +133,14 @@
     adviceBox.className = "setup-advice " + (state.stage === "ready" ? "setup-advice--ok" : "setup-advice--todo");
     adviceBox.appendChild(el("h2", null, advice.title));
     adviceBox.appendChild(el("p", null, advice.body));
+
+    // Confirm which variable is being read, so a connection string set under
+    // one of Vercel's own names does not look like it was ignored.
+    if (state.databaseUrlVar) {
+      var note = el("p", "setup-note",
+        "Reading the connection string from " + state.databaseUrlVar + ".");
+      adviceBox.appendChild(note);
+    }
 
     actions.textContent = "";
 
