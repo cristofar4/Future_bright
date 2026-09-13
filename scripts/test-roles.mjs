@@ -285,6 +285,20 @@ console.log("\nwhere the connection string is read from");
   check("an empty variable is not mistaken for one that is set",
     databaseUrlVar() === "POSTGRES_URL", String(databaseUrlVar()));
 
+  // An integration can leave two set at once: Prisma Postgres puts its proxy
+  // URL in DATABASE_URL. Taking that just because it is first would refuse a
+  // working database sitting in the next variable along.
+  clear();
+  process.env.DATABASE_URL = "prisma+postgres://accelerate.prisma-data.net/?api_key=ey";
+  process.env.POSTGRES_URL = "postgres://x@y/z";
+  check("a usable string beats an unusable one, whatever the order",
+    databaseUrlVar() === "POSTGRES_URL", String(databaseUrlVar()));
+
+  clear();
+  process.env.DATABASE_URL = "prisma+postgres://accelerate.prisma-data.net/?api_key=ey";
+  check("with nothing usable, the one that was set is still named",
+    databaseUrlVar() === "DATABASE_URL", String(databaseUrlVar()));
+
   clear();
   Object.assign(process.env, saved);
 }

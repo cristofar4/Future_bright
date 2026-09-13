@@ -72,7 +72,7 @@ Open `index.html` in a browser and it works.
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
 │   ├── test-portal.mjs           # 31 pupil dashboard tests
 │   ├── test-signup-mode.mjs      # 25 open/closed sign-up tests
-│   └── test-roles.mjs            # 106 parent / teacher / admin tests
+│   └── test-roles.mjs            # 108 parent / teacher / admin tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -282,7 +282,7 @@ npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
 npm run check        # deployment checks, no database needed
-npm test             # checks + 227 API tests, needs DATABASE_URL
+npm test             # checks + 229 API tests, needs DATABASE_URL
 npm run test:roles   # just the parent, teacher and admin dashboards
 ```
 
@@ -367,9 +367,13 @@ return 503 with a "contact the school office" message, rather than pretending to
 
 `DATABASE_URL` is the documented name, but Vercel's own Postgres and the Supabase and Neon
 integrations each set their own when you press "connect to project", so `POSTGRES_URL`,
-`DATABASE_URL_UNPOOLED` and `POSTGRES_URL_NON_POOLING` are accepted too (first one set
-wins). `setup.html` says which one it is reading, so a database connected through Vercel's
-UI does not look like it was ignored. The name only: never the string.
+`DATABASE_URL_UNPOOLED` and `POSTGRES_URL_NON_POOLING` are accepted too. A **usable** URL
+wins over the list order: an integration can leave two set at once, and taking
+`DATABASE_URL` just because it is first would refuse a working database sitting in the next
+variable along. Only when none is usable does it fall back to the first one set, so the
+setup page can name what it had to reject. `setup.html` says which variable it is reading,
+so a database connected through Vercel's UI does not look like it was ignored. The name
+only: never the string.
 
 **It has to be a direct Postgres URL** (`postgres://` or `postgresql://`). This talks to
 Postgres over the wire with `pg`, so a proxy string only a vendor's own client can open

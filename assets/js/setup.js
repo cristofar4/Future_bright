@@ -83,9 +83,11 @@
       title: "That connection string cannot be used directly",
       body: "It is set, but it is a proxy URL rather than a Postgres one, so only its own client " +
             "library can open it. Prisma Postgres does this: it gives you prisma+postgres://\u2026 " +
-            "with an api_key. Use that database's DIRECT connection string instead, the one starting " +
-            "postgres:// or postgresql://, or create a plain Postgres (Neon or Supabase) and use that. " +
-            "Set it as DATABASE_URL for all environments, then redeploy.",
+            "with an api_key. You need a DIRECT connection string, the one starting postgres:// or " +
+            "postgresql://. If that database offers one, add it under Settings, then Environment " +
+            "Variables, as POSTGRES_URL: a usable string is preferred over an unusable one, so it " +
+            "will be taken instead of the one above without your having to remove anything. " +
+            "Otherwise create a plain Postgres (Neon or Supabase) and use that. Redeploy afterwards.",
     },
     connection: {
       title: "The database refused the connection",
