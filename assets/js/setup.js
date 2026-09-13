@@ -32,6 +32,29 @@
     return n;
   }
 
+  /** Run a one-off setup action, then re-read the status. */
+  async function runStep(button, url, working) {
+    var idle = button.textContent;
+    button.disabled = true;
+    button.textContent = working;
+    var result = document.querySelector("[data-result]");
+    result.textContent = "";
+    result.className = "setup-result";
+    try {
+      var res = await fetch(url, { method: "POST", credentials: "same-origin" });
+      var body = await res.json().catch(function () { return {}; });
+      result.textContent = body.message || (res.ok ? "Done." : "That did not work.");
+      result.className = "setup-result " + (res.ok ? "setup-result--ok" : "setup-result--bad");
+    } catch (err) {
+      result.textContent = "Could not reach the server. Try again.";
+      result.className = "setup-result setup-result--bad";
+    } finally {
+      button.disabled = false;
+      button.textContent = idle;
+      await run();
+    }
+  }
+
   var ADVICE = {
     build: {
       title: "The deployment is not serving the API",
@@ -52,8 +75,8 @@
     },
     schema: {
       title: "Create the tables",
-      body: "From a clone of the repository, with the same connection string exported as DATABASE_URL, " +
-            "run: npm install, then npm run db:setup, then npm run db:demo for sample data.",
+      body: "The database is connected but empty. Press the button below to create the tables. " +
+            "It only adds tables that are missing and refuses once they exist, so it is safe to press.",
     },
     ready: {
       title: "Everything is ready",
@@ -111,14 +134,36 @@
     adviceBox.appendChild(el("p", null, advice.body));
 
     actions.textContent = "";
+
+    // The one action that moves setup forward, if it can be done from here.
+    if (state.stage === "schema") {
+      var make = el("button", "btn", "Create the tables");
+      make.type = "button";
+      make.addEventListener("click", function () {
+        runStep(make, "/api/auth/migrate", "Creating\u2026");
+      });
+      actions.appendChild(make);
+    }
+
     if (state.stage === "ready") {
       var go = el("a", "btn", "Create an account");
       go.href = "signup.html";
       actions.appendChild(go);
+
+      if (!state.registerImported && !state.hasSampleData) {
+        var seed = el("button", "btn btn--outline", "Load sample data");
+        seed.type = "button";
+        seed.style.marginLeft = ".6rem";
+        seed.addEventListener("click", function () {
+          runStep(seed, "/api/auth/seed", "Loading\u2026");
+        });
+        actions.appendChild(seed);
+      }
     }
+
     var demo = el("a", "btn btn--outline", "Open the demo preview");
     demo.href = "portal.html?demo=1";
-    demo.style.marginLeft = state.stage === "ready" ? ".6rem" : "0";
+    demo.style.marginLeft = actions.children.length ? ".6rem" : "0";
     actions.appendChild(demo);
   }
 

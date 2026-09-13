@@ -72,6 +72,19 @@ for (const [dispatcher, folder] of [
   }
 }
 
+// api/_lib/schema.js is generated from db/*.sql. If they drift, the migrate
+// endpoint creates tables that do not match what the code expects.
+try {
+  const { render } = await import("./build-schema.mjs");
+  const expected = await render();
+  const actual = await readFile(join(ROOT, "api", "_lib", "schema.js"), "utf8");
+  expected === actual
+    ? pass("api/_lib/schema.js matches db/*.sql")
+    : fail("api/_lib/schema.js is out of date. Run: node scripts/build-schema.mjs");
+} catch (err) {
+  fail(`schema check: ${err.message}`);
+}
+
 // package.json must declare its runtime dependencies, or the functions crash
 // on Vercel with MODULE_NOT_FOUND.
 try {

@@ -61,6 +61,8 @@ Open `index.html` in a browser and it works.
 │   └── sample-register.csv       # the CSV shape the importer expects
 ├── scripts/
 │   ├── dev-server.mjs            # static files + /api routes, for local work
+│   ├── build-schema.mjs          # db/*.sql -> api/_lib/schema.js, for the migrate endpoint
+│   ├── check-deploy.mjs          # function count, dispatchers, schema drift
 │   ├── db.mjs                    # setup / demo / status, no psql needed
 │   ├── import-register.mjs       # spreadsheet CSV -> register table
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
@@ -236,28 +238,35 @@ deployed, database connected, tables created) and names the next action. It repo
 whether each piece is in place, never the connection string and nothing about who is on the
 register.
 
-**On Vercel, from nothing to a working sign-up:**
+**On Vercel, from nothing to a working sign-up. No terminal needed:**
 
-1. Create a free Postgres. Any works; Neon (neon.tech) and Supabase both have a free tier,
-   and Vercel offers one under Storage. Copy the connection string, which looks like
+1. Create a free Postgres. Neon (neon.tech) and Supabase both have a free tier, and Vercel
+   offers one under Storage. Copy the connection string, which looks like
    `postgres://user:password@host/dbname?sslmode=require`.
 2. In your Vercel project: **Settings -> Environment Variables**, add `DATABASE_URL` with
    that value, for all environments. Redeploy so it takes effect.
-3. From a clone of this repo, pointing at the same database:
+3. Open **`/setup.html`** on the site. It will say the database is connected but the tables
+   are missing, with a **Create the tables** button. Press it.
+4. Optionally press **Load sample data** for a timetable, results and announcements, so a
+   new account has something to show.
+5. Press **Create an account**. Any admission number works while sign-up is open.
 
-   ```bash
-   npm install
-   export DATABASE_URL="postgres://...(the same string)"
-   npm run db:setup     # create the tables
-   npm run db:demo      # optional: sample timetable, results and announcements
-   npm run db:status    # confirms what is connected and whether sign-up is open
-   ```
+Steps 3 and 4 exist because setting this up from a phone is the common case. They are safe
+to expose: the SQL is fixed and shipped with the function rather than taken from the
+request, every statement only adds (`CREATE ... IF NOT EXISTS`), and each refuses once it
+has been done, so neither can overwrite a real school's data.
 
-4. Open `/setup.html` to confirm all three checks are green, then `/signup.html` to create
-   your account. Any admission number works, see below.
+**From a terminal instead**, if you have one:
 
-`db:setup` and `db:demo` run through the `pg` driver, so the `psql` command-line client is
-not required.
+```bash
+npm install
+export DATABASE_URL="postgres://...(the same string)"
+npm run db:setup     # create the tables
+npm run db:demo      # optional sample data
+npm run db:status    # what is connected, and whether sign-up is open
+```
+
+`db:setup` and `db:demo` run through the `pg` driver, so the `psql` client is not required.
 
 **Locally:**
 
@@ -366,6 +375,8 @@ return 503 with a "contact the school office" message, rather than pretending to
 | `/api/portal/password` | POST | Change password; ends every other session |
 | `/api/portal/demo` | GET | Sample student for the preview; no database, no sign-in |
 | `/api/auth/mode` | GET | Whether a database is attached and whether sign-up is open |
+| `/api/auth/migrate` | POST | Create the tables. Refuses once they exist |
+| `/api/auth/seed` | POST | Load the sample data. Refuses once the register has rows |
 
 ### The portal pages
 

@@ -41,6 +41,11 @@
   .setup-note { font-size: .82rem; color: var(--muted); line-height: 1.6; margin-top: 1.4rem; }
   .setup-note code { background: #fff; border: 1px solid var(--line); border-radius: 5px; padding: .1rem .35rem; font-size: .95em; }
   .setup-loading { color: var(--muted); font-size: .9rem; }
+  .setup-result { font-size: .88rem; font-weight: 600; line-height: 1.5; margin-top: .2rem; min-height: 1.2em; }
+  .setup-result--ok  { color: #12663c; }
+  .setup-result--bad { color: #a3203c; }
+  [data-actions] { display: flex; flex-wrap: wrap; gap: .6rem; }
+  [data-actions] .btn { margin-left: 0 !important; }
 </style>
 </head>
 <body>
@@ -70,6 +75,7 @@
   </div>
 
   <p data-actions></p>
+  <p class="setup-result" data-result role="status" aria-live="polite"></p>
 
   <p class="setup-note">
     This page reads <code>/api/auth/mode</code>, which reports only whether each piece is in

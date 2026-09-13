@@ -8,15 +8,17 @@
  * The handlers live in _routes/, which Vercel does not turn into functions
  * because the directory starts with an underscore.
  */
-import login  from "./_routes/login.js";
-import logout from "./_routes/logout.js";
-import me     from "./_routes/me.js";
-import mode   from "./_routes/mode.js";
-import signup from "./_routes/signup.js";
+import login   from "./_routes/login.js";
+import logout  from "./_routes/logout.js";
+import me      from "./_routes/me.js";
+import migrate from "./_routes/migrate.js";
+import mode    from "./_routes/mode.js";
+import seed    from "./_routes/seed.js";
+import signup  from "./_routes/signup.js";
 
 import { json } from "../_lib/http.js";
 
-const ROUTES = { login, logout, me, mode, signup };
+const ROUTES = { login, logout, me, migrate, mode, seed, signup };
 
 export default async function handler(req, res) {
   // Taken from the path rather than req.query, so this behaves identically
