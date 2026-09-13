@@ -4,9 +4,9 @@
  * Both are scoped to the signed-in user, so passing someone else's message id
  * simply matches no row.
  */
-import { query } from "../_lib/db.js";
-import { json, methodNotAllowed, readJson, badBody } from "../_lib/http.js";
-import { requireStudent, studentSummary, currentTerm, unreadCount, portalRoute } from "./_student.js";
+import { query } from "../../_lib/db.js";
+import { json, methodNotAllowed, readJson, badBody } from "../../_lib/http.js";
+import { requireStudent, studentSummary, currentTerm, unreadCount, portalRoute } from "../_student.js";
 
 export default portalRoute(async function (req, res) {
   if (req.method !== "GET" && req.method !== "POST") return methodNotAllowed(res, ["GET", "POST"]);

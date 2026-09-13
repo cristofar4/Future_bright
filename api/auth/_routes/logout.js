@@ -1,6 +1,6 @@
 /* POST /api/auth/logout - revokes the session server-side and clears the cookie. */
-import { json, methodNotAllowed, clearSessionCookie } from "../_lib/http.js";
-import { destroySession } from "../_lib/session.js";
+import { json, methodNotAllowed, clearSessionCookie } from "../../_lib/http.js";
+import { destroySession } from "../../_lib/session.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return methodNotAllowed(res, ["POST"]);

@@ -4,21 +4,20 @@
 import { createServer } from "node:http";
 import { query, closePool } from "../api/_lib/db.js";
 
-const signup = (await import("../api/auth/signup.js")).default;
-const mode   = (await import("../api/auth/mode.js")).default;
-const dash   = (await import("../api/portal/dashboard.js")).default;
+const authRoute   = (await import("../api/auth/[action].js")).default;
+const portalRoute = (await import("../api/portal/[section].js")).default;
 
 let pass = 0, fail = 0; const failures = [];
 const check = (n, ok, d = "") => ok
   ? (pass++, console.log(`  PASS  ${n}`))
   : (fail++, failures.push(n), console.log(`  FAIL  ${n}${d ? " - " + d : ""}`));
 
-const routes = { "/api/auth/signup": signup, "/api/auth/mode": mode, "/api/portal/dashboard": dash };
 const server = createServer(async (req, res) => {
   const { pathname } = new URL(req.url, "http://localhost");
-  const h = routes[pathname];
-  if (!h) { res.statusCode = 404; return res.end("{}"); }
-  try { await h(req, res); } catch (e) { console.error(e); res.statusCode = 500; res.end("{}"); }
+  const route = pathname.startsWith("/api/auth/") ? authRoute
+              : pathname.startsWith("/api/portal/") ? portalRoute : null;
+  if (!route) { res.statusCode = 404; return res.end("{}"); }
+  try { await route(req, res); } catch (e) { console.error(e); res.statusCode = 500; res.end("{}"); }
 });
 await new Promise((r) => server.listen(0, r));
 const BASE = `http://127.0.0.1:${server.address().port}`;

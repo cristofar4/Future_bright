@@ -6,9 +6,9 @@
  * A student only ever sees their own row: every query is keyed on the
  * register_id attached to their session, never on anything from the request.
  */
-import { query } from "../_lib/db.js";
-import { json, methodNotAllowed } from "../_lib/http.js";
-import { getSessionUser } from "../_lib/session.js";
+import { query } from "../../_lib/db.js";
+import { json, methodNotAllowed } from "../../_lib/http.js";
+import { getSessionUser } from "../../_lib/session.js";
 
 function greeting(hour) {
   if (hour < 12) return "Good Morning";

@@ -3,11 +3,11 @@
  * The current password is required, so a borrowed session cannot be used to
  * lock the real owner out. Every other session is dropped on success.
  */
-import { query } from "../_lib/db.js";
-import { hashPassword, verifyPassword, hashToken } from "../_lib/crypto.js";
-import { json, methodNotAllowed, readJson, badBody, parseCookies, SESSION_COOKIE } from "../_lib/http.js";
-import { getSessionUser } from "../_lib/session.js";
-import { checkPassword } from "../_lib/validate.js";
+import { query } from "../../_lib/db.js";
+import { hashPassword, verifyPassword, hashToken } from "../../_lib/crypto.js";
+import { json, methodNotAllowed, readJson, badBody, parseCookies, SESSION_COOKIE } from "../../_lib/http.js";
+import { getSessionUser } from "../../_lib/session.js";
+import { checkPassword } from "../../_lib/validate.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return methodNotAllowed(res, ["POST"]);

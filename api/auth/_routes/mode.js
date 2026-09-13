@@ -4,8 +4,8 @@
  * attached at all, and whether their details must match the school register.
  * Deliberately returns nothing about who is on that register.
  */
-import { json, methodNotAllowed } from "../_lib/http.js";
-import { isOpenSignup } from "./_mode.js";
+import { json, methodNotAllowed } from "../../_lib/http.js";
+import { isOpenSignup } from "../_mode.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);

@@ -47,9 +47,11 @@ Open `index.html` in a browser and it works.
 │   └── img/                      # photography + favicon
 ├── api/
 │   ├── _lib/                     # db, crypto, http, validation, rate limiting, sessions
-│   ├── auth/                     # signup, login, logout, me
-│   └── portal/                   # dashboard, classes, assignments, results,
-│                                 #   attendance, messages, profile, password, demo
+│   ├── auth/[action].js          # one function for every /api/auth/* route
+│   ├── auth/_routes/             # signup, login, logout, me, mode
+│   ├── portal/[section].js       # one function for every /api/portal/* route
+│   └── portal/_routes/           # dashboard, classes, assignments, results, attendance,
+│                                 #   messages, profile, password, demo
 ├── db/
 │   ├── schema.sql                # accounts, sessions, register
 │   ├── portal-schema.sql         # timetable, assignments, results, attendance
@@ -258,7 +260,8 @@ export DATABASE_URL="postgres://user:pass@localhost:5432/bfss"
 npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
-npm test             # 121 API tests, needs DATABASE_URL
+npm run check        # deployment checks, no database needed
+npm test             # checks + 121 API tests, needs DATABASE_URL
 ```
 
 ### Open sign-up
@@ -312,6 +315,24 @@ Real exports are git-ignored: `*.csv` is excluded so a file of children's data c
 committed by accident.
 
 ### Deploying
+
+**Serverless function count.** Vercel's Hobby plan allows 12 Serverless Functions per
+deployment, and every routable file under `api/` counts as one. A file per endpoint took
+this past the limit and the build failed with *"No more than 12 Serverless Functions can be
+added to a Deployment on the Hobby plan"*.
+
+The endpoints are therefore collapsed behind two dynamic routes,
+`api/auth/[action].js` and `api/portal/[section].js`, which dispatch to the handlers in
+`_routes/`. Directories beginning with an underscore are not turned into functions. Every
+URL is unchanged, and the whole group now shares one database pool instead of opening one
+per endpoint, which matters on a small Postgres plan.
+
+`npm run check` fails if the count creeps back over the limit, if a dispatcher imports a
+handler that does not exist, or if a handler exists that nothing routes to. It runs first
+as part of `npm test` and needs no database.
+
+**To add an endpoint:** put it in the relevant `_routes/` folder and add it to that
+dispatcher's import list. Do not add a new top-level file under `api/`.
 
 On Vercel the `api/` directory is picked up automatically. Set `DATABASE_URL` as an
 environment variable (Neon, Supabase and Vercel Postgres all work; use their pooled

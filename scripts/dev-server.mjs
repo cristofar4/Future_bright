@@ -2,7 +2,7 @@
    same handler modules Vercel runs in production.
    Usage:  DATABASE_URL=... npm run dev   */
 import { createServer } from "node:http";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -22,12 +22,24 @@ async function serveApi(req, res, route) {
   const rel = normalize(route.replace(/^\/api\//, "")).replace(/^(\.\.[/\\])+/, "");
   if (!rel || rel.startsWith("_") || rel.includes("/_")) return false;
 
-  const file = join(ROOT, "api", `${rel}.js`);
-  try {
-    await stat(file);
-  } catch {
-    return false;
+  // Exact file first, then the dynamic route that covers the folder, which is
+  // how Vercel resolves api/portal/[section].js for /api/portal/results.
+  const segments = rel.split("/");
+  const candidates = [join(ROOT, "api", `${rel}.js`)];
+  if (segments.length > 1) {
+    const folder = join(ROOT, "api", ...segments.slice(0, -1));
+    try {
+      for (const name of await readdir(folder)) {
+        if (/^\[.+\]\.js$/.test(name)) candidates.push(join(folder, name));
+      }
+    } catch { /* no such folder */ }
   }
+
+  let file = null;
+  for (const candidate of candidates) {
+    try { await stat(candidate); file = candidate; break; } catch { /* next */ }
+  }
+  if (!file) return false;
   // Cache-bust so edits are picked up without restarting the server.
   const mod = await import(`${pathToFileURL(file).href}?t=${Date.now()}`);
   await mod.default(req, res);

@@ -1,7 +1,7 @@
 /* GET /api/portal/classes - the full week's timetable for the pupil's class. */
-import { query } from "../_lib/db.js";
-import { json, methodNotAllowed } from "../_lib/http.js";
-import { requireStudent, studentSummary, currentTerm, unreadCount, portalRoute } from "./_student.js";
+import { query } from "../../_lib/db.js";
+import { json, methodNotAllowed } from "../../_lib/http.js";
+import { requireStudent, studentSummary, currentTerm, unreadCount, portalRoute } from "../_student.js";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 

@@ -1,7 +1,7 @@
 /* GET /api/portal/attendance - the pupil's attendance totals and recent days. */
-import { query } from "../_lib/db.js";
-import { json, methodNotAllowed } from "../_lib/http.js";
-import { requireStudent, studentSummary, currentTerm, unreadCount, portalRoute } from "./_student.js";
+import { query } from "../../_lib/db.js";
+import { json, methodNotAllowed } from "../../_lib/http.js";
+import { requireStudent, studentSummary, currentTerm, unreadCount, portalRoute } from "../_student.js";
 
 export default portalRoute(async function (req, res) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);

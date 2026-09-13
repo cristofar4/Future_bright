@@ -1,7 +1,7 @@
 /* GET /api/portal/assignments - every assignment set for the pupil's class. */
-import { query } from "../_lib/db.js";
-import { json, methodNotAllowed } from "../_lib/http.js";
-import { requireStudent, studentSummary, currentTerm, unreadCount, portalRoute } from "./_student.js";
+import { query } from "../../_lib/db.js";
+import { json, methodNotAllowed } from "../../_lib/http.js";
+import { requireStudent, studentSummary, currentTerm, unreadCount, portalRoute } from "../_student.js";
 
 export default portalRoute(async function (req, res) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);

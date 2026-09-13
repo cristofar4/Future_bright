@@ -9,12 +9,9 @@ import { createServer } from "node:http";
 import { query, closePool } from "../api/_lib/db.js";
 import { hashPassword, verifyPassword, newSessionToken, hashToken } from "../api/_lib/crypto.js";
 
-const handlers = {
-  "/api/auth/signup": (await import("../api/auth/signup.js")).default,
-  "/api/auth/login":  (await import("../api/auth/login.js")).default,
-  "/api/auth/logout": (await import("../api/auth/logout.js")).default,
-  "/api/auth/me":     (await import("../api/auth/me.js")).default,
-};
+// Go through the dynamic route Vercel actually serves, not the handlers behind
+// it, so the dispatch is covered too.
+const authRoute = (await import("../api/auth/[action].js")).default;
 
 let pass = 0, fail = 0;
 const failures = [];
@@ -27,9 +24,8 @@ function check(name, ok, detail = "") {
 // ---- a tiny server so cookies and headers behave like the real thing -------
 const server = createServer(async (req, res) => {
   const { pathname } = new URL(req.url, "http://localhost");
-  const handler = handlers[pathname];
-  if (!handler) { res.statusCode = 404; return res.end("{}"); }
-  try { await handler(req, res); }
+  if (!pathname.startsWith("/api/auth/")) { res.statusCode = 404; return res.end("{}"); }
+  try { await authRoute(req, res); }
   catch (err) { console.error(err); res.statusCode = 500; res.end("{}"); }
 });
 

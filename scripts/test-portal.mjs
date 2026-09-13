@@ -14,11 +14,8 @@ import { query, closePool } from "../api/_lib/db.js";
 const here = dirname(fileURLToPath(import.meta.url));
 await query(await readFile(join(here, "..", "db", "demo-portal.sql"), "utf8"));
 
-const handlers = {
-  "/api/auth/signup":      (await import("../api/auth/signup.js")).default,
-  "/api/auth/login":       (await import("../api/auth/login.js")).default,
-  "/api/portal/dashboard": (await import("../api/portal/dashboard.js")).default,
-};
+const authRoute   = (await import("../api/auth/[action].js")).default;
+const portalRoute = (await import("../api/portal/[section].js")).default;
 
 let pass = 0, fail = 0; const failures = [];
 const check = (n, ok, d = "") => ok
@@ -27,9 +24,10 @@ const check = (n, ok, d = "") => ok
 
 const server = createServer(async (req, res) => {
   const { pathname } = new URL(req.url, "http://localhost");
-  const h = handlers[pathname];
-  if (!h) { res.statusCode = 404; return res.end("{}"); }
-  try { await h(req, res); } catch (e) { console.error(e); res.statusCode = 500; res.end("{}"); }
+  const route = pathname.startsWith("/api/auth/") ? authRoute
+              : pathname.startsWith("/api/portal/") ? portalRoute : null;
+  if (!route) { res.statusCode = 404; return res.end("{}"); }
+  try { await route(req, res); } catch (e) { console.error(e); res.statusCode = 500; res.end("{}"); }
 });
 await new Promise((r) => server.listen(0, r));
 const BASE = `http://127.0.0.1:${server.address().port}`;

@@ -1,10 +1,10 @@
 /* POST /api/auth/login - email and password, returns a session cookie. */
-import { query } from "../_lib/db.js";
-import { verifyPassword, dummyVerify } from "../_lib/crypto.js";
-import { json, methodNotAllowed, readJson, badBody, setSessionCookie, clientIp } from "../_lib/http.js";
-import { createSession, publicUser, pruneSessions } from "../_lib/session.js";
-import { checkRateLimit, recordAttempt } from "../_lib/rate.js";
-import { str, normaliseEmail, isEmail } from "../_lib/validate.js";
+import { query } from "../../_lib/db.js";
+import { verifyPassword, dummyVerify } from "../../_lib/crypto.js";
+import { json, methodNotAllowed, readJson, badBody, setSessionCookie, clientIp } from "../../_lib/http.js";
+import { createSession, publicUser, pruneSessions } from "../../_lib/session.js";
+import { checkRateLimit, recordAttempt } from "../../_lib/rate.js";
+import { str, normaliseEmail, isEmail } from "../../_lib/validate.js";
 
 // One message for every failure: a wrong password and an unknown address must
 // look identical, or the form becomes a way to test which emails are registered.

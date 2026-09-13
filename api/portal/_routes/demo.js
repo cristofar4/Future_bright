@@ -3,8 +3,8 @@
  * The sample student, with no database and no sign-in. Everything it returns
  * carries demo: true, and the interface labels the page as a preview.
  */
-import { json, methodNotAllowed } from "../_lib/http.js";
-import { demoPayload } from "./_demo.js";
+import { json, methodNotAllowed } from "../../_lib/http.js";
+import { demoPayload } from "../_demo.js";
 
 const SECTIONS = ["dashboard", "classes", "assignments", "results", "attendance", "messages", "profile", "calendar"];
 

@@ -13,16 +13,16 @@
  * Failures return one generic message so the endpoint cannot be used to work
  * out who attends or teaches at the school.
  */
-import { query } from "../_lib/db.js";
-import { isOpenSignup } from "./_mode.js";
-import { hashPassword } from "../_lib/crypto.js";
-import { json, methodNotAllowed, readJson, badBody, setSessionCookie, clientIp } from "../_lib/http.js";
-import { createSession, publicUser } from "../_lib/session.js";
-import { checkRateLimit, recordAttempt, pruneAttempts } from "../_lib/rate.js";
+import { query } from "../../_lib/db.js";
+import { isOpenSignup } from "../_mode.js";
+import { hashPassword } from "../../_lib/crypto.js";
+import { json, methodNotAllowed, readJson, badBody, setSessionCookie, clientIp } from "../../_lib/http.js";
+import { createSession, publicUser } from "../../_lib/session.js";
+import { checkRateLimit, recordAttempt, pruneAttempts } from "../../_lib/rate.js";
 import {
   CLASS_LEVELS, ROLES, str, normaliseRef, normaliseEmail, normalisePhone,
   isEmail, checkPassword, checkFullName, nameMatchesSurname,
-} from "../_lib/validate.js";
+} from "../../_lib/validate.js";
 
 const NO_MATCH =
   "Those details do not match our records. Please check them against your admission letter, " +
