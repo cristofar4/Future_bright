@@ -15,6 +15,9 @@
   // Details someone entered on the sign-up form while no database was attached.
   var PREVIEW_KEY = "bfss_preview_account";
 
+  // Whether this person has hidden the sidebar on a wide screen.
+  var COLLAPSE_KEY = "bfss_side_collapsed";
+
   function previewAccount() {
     try {
       var raw = window.localStorage.getItem(PREVIEW_KEY);
@@ -714,12 +717,55 @@
     var scrim = document.querySelector("[data-side-scrim]");
     var toggle = document.querySelector("[data-side-toggle]");
 
-    function setOpen(open) {
+    /* The same button does two jobs. Narrow: the sidebar slides in over the
+       page and a scrim closes it. Wide: it is always there, and this hides it
+       so the dashboard can have the full width. The choice is remembered, so
+       someone who prefers the room keeps it. */
+    var narrow = window.matchMedia("(max-width: 900px)");
+
+    function setOpen(open) {                       // narrow screens
       side.classList.toggle("is-open", open);
       scrim.classList.toggle("is-open", open);
-      if (toggle) { toggle.setAttribute("aria-expanded", String(open)); }
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+      }
     }
-    if (toggle) { toggle.addEventListener("click", function () { setOpen(!side.classList.contains("is-open")); }); }
+
+    function setCollapsed(collapsed, remember) {   // wide screens
+      document.body.classList.toggle("side-collapsed", collapsed);
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", String(!collapsed));
+        toggle.setAttribute("aria-label", collapsed ? "Show menu" : "Hide menu");
+      }
+      if (remember === false) { return; }
+      try { window.localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0"); }
+      catch (err) { /* private browsing; the button still works for this visit */ }
+    }
+
+    function collapsedByChoice() {
+      try { return window.localStorage.getItem(COLLAPSE_KEY) === "1"; }
+      catch (err) { return false; }
+    }
+
+    function applyWidth() {
+      if (narrow.matches) {
+        document.body.classList.remove("side-collapsed");
+        setOpen(false);
+      } else {
+        setOpen(false);                            // never leave the scrim up
+        setCollapsed(collapsedByChoice(), false);
+      }
+    }
+    applyWidth();
+    if (narrow.addEventListener) { narrow.addEventListener("change", applyWidth); }
+
+    if (toggle) {
+      toggle.addEventListener("click", function () {
+        if (narrow.matches) { setOpen(!side.classList.contains("is-open")); }
+        else { setCollapsed(!document.body.classList.contains("side-collapsed")); }
+      });
+    }
     if (scrim) { scrim.addEventListener("click", function () { setOpen(false); }); }
     side.addEventListener("click", function (e) { if (e.target.closest("a")) { setOpen(false); } });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") { setOpen(false); } });

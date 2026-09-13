@@ -449,6 +449,13 @@ sign up first must not be handed it. `PORTAL_ADMIN_EMAILS` (comma separated) nam
 administrators. The admin endpoint returns names, roles and emails only; never a password
 hash and never a session token.
 
+**The sidebar folds away.** The menu button is in the top bar at every width. On a phone it
+slides the sidebar in over the page with a scrim, as before. On a laptop it hides the
+sidebar instead and the dashboard takes the width, which is what a small screen on a
+cheap laptop needs. The choice is kept in `localStorage`, so it holds as you move around,
+and a narrow window never inherits it. Nothing is stranded: everything in the sidebar, Log
+Out included, comes back with the same button.
+
 Grades on the results page follow the WAEC scale (A1 75+, B2 70-74, B3 65-69, C4 60-64,
 C5 55-59, C6 50-54, D7 45-49, E8 40-44, F9 below 40).
 
