@@ -419,6 +419,167 @@ console.log("\nthe notice board");
   check("an unsupported method is refused", wrongMethod.status === 405, `${wrongMethod.status}`);
 }
 
+/* ------------------------------------------------------------------ classes */
+console.log("\nclasses");
+{
+  let r = await call("/api/portal/timetable", { cookie: admin.cookie });
+  check("the list loads for an administrator", r.status === 200, `${r.status}`);
+  check("every class is there", r.body.classes.length > 0, `${r.body.classes.length}`);
+  check("counted", r.body.totals.classes === r.body.classes.length);
+  check("with its pupils and its periods",
+    r.body.classes.every((c) => Number.isInteger(c.pupils) && Number.isInteger(c.periods)));
+
+  const one = await call("/api/portal/timetable?class=SS2A", { cookie: admin.cookie });
+  check("one class loads", one.status === 200 && one.body.className === "SS2A", `${one.status}`);
+  check("the week is five days", one.body.week.length === 5, `${one.body.week?.length}`);
+  check("with periods on it", one.body.week.some((d) => d.lessons.length > 0));
+  check("periods are in time order",
+    one.body.week.every((d) => d.lessons.every((l, i, all) => i === 0 || l.starts_at_24 >= all[i - 1].starts_at_24)));
+  check("who teaches it is listed", Array.isArray(one.body.staff) && one.body.staff.length > 0);
+  check("and who is on its register", Array.isArray(one.body.pupils));
+
+  const nope = await call("/api/portal/timetable?class=ZZ9A", { cookie: admin.cookie });
+  check("a class that does not exist is a plain 404", nope.status === 404, `${nope.status}`);
+  const post = await call("/api/portal/timetable", { method: "POST", cookie: admin.cookie });
+  check("it is read-only", post.status === 405, `${post.status}`);
+}
+
+/* --------------------------------------------------------- portal accounts */
+console.log("\nportal accounts");
+{
+  const get = (qs) => call("/api/portal/accounts" + (qs || ""), { cookie: admin.cookie });
+  const act = (body) => call("/api/portal/accounts", { method: "POST", body, cookie: admin.cookie });
+  const drop = (id, cookie) => call(`/api/portal/accounts?id=${id}`, { method: "DELETE", cookie: cookie || admin.cookie });
+
+  let r = await get();
+  check("the list loads for an administrator", r.status === 200, `${r.status}`);
+  check("accounts are listed", r.body.accounts.length > 0, `${r.body.accounts.length}`);
+  check("with what each is linked to",
+    r.body.accounts.some((a) => a.linkedTo), JSON.stringify(r.body.accounts[0]));
+  check("and whether they are signed in",
+    r.body.accounts.every((a) => Number.isInteger(a.sessions)));
+  check("administrators are counted", r.body.totals.admins >= 1, `${r.body.totals.admins}`);
+
+  // Nothing on this page may carry a credential.
+  const serialised = JSON.stringify(r.body);
+  check("no password hash in the list", !/password|scrypt|\$2[aby]\$/i.test(serialised));
+  check("no session token in the list", !/token_hash|"token"/i.test(serialised));
+  check("account rows carry no credential",
+    r.body.accounts.every((a) => Object.keys(a).sort().join(",") ===
+      "email,fullName,id,initials,isAdmin,joinedOn,lastLogin,linkedTo,phone,role,sessions"),
+    Object.keys(r.body.accounts[0]).sort().join(","));
+
+  const byRole = await get("?role=student");
+  check("filtering by role works", byRole.body.accounts.every((a) => a.role === "student"),
+    byRole.body.accounts.map((a) => a.role).join(","));
+  const found = await get("?q=" + encodeURIComponent("Ibrahim"));
+  check("search finds by name", found.body.accounts.some((a) => a.fullName.includes("Ibrahim")),
+    found.body.accounts.map((a) => a.fullName).join(", "));
+
+  const me = r.body.admin.id;
+  const other = r.body.accounts.find((a) => a.id !== me && a.role === "teacher");
+
+  // Something of our own to sign out and then remove: deleting an account the
+  // rest of this file still signs in with would pull the floor out from under it.
+  const spare = await call("/api/auth/signup", { method: "POST", body: {
+    role: "student", fullName: "Temi Balogun", email: "temi.balogun@example.com",
+    phone: "08077778888", reference: "BFS/2026/0777", classLevel: "SS1",
+    password: PW, confirmPassword: PW } });
+  check("a throwaway account to work on", spare.status === 201, `${spare.status} ${spare.body.message || ""}`);
+  r = await get();
+  const aPupil = r.body.accounts.find((a) => a.fullName === "Temi Balogun");
+
+  /* --- the rules that stop a lockout ----------------------------------- */
+  let out = await act({ id: Number(me), action: "admin", on: false });
+  check("you cannot demote yourself", out.status === 400 && out.body.message.includes("your own account"),
+    JSON.stringify(out.body));
+  out = await drop(me);
+  check("you cannot delete yourself", out.status === 400, `${out.status}`);
+
+  // With one administrator, removing them must be refused however it is asked.
+  check("there is exactly one administrator to start", r.body.totals.admins === 1,
+    `${r.body.totals.admins}`);
+
+  /* --- making somebody an administrator -------------------------------- */
+  out = await act({ id: Number(other.id), action: "admin", on: true });
+  check("somebody else can be made one", out.status === 200 && out.body.ok === true, `${out.status}`);
+  check("and the count goes up", out.body.totals.admins === 2, `${out.body.totals.admins}`);
+  check("the row says so", out.body.accounts.find((a) => a.id === other.id)?.isAdmin === true);
+
+  // Now there are two, the first can be demoted. Then there is one again.
+  out = await act({ id: Number(other.id), action: "admin", on: false });
+  check("and unmade", out.body.totals.admins === 1, `${out.body.totals.admins}`);
+
+  // The last one cannot be removed, whoever asks.
+  const second = await call("/api/auth/signup", { method: "POST", body: {
+    role: "teacher", fullName: "Ada Nwosu", email: "a.nwosu@brightfuture.edu.ng",
+    reference: "BFS/STF/031", password: PW, confirmPassword: PW } });
+  check("a second member of staff signed up", second.status === 201, `${second.status}`);
+  await act({ id: Number(second.body.user.id), action: "admin", on: true });
+  const asSecond = await call("/api/portal/accounts", { method: "POST", cookie: second.cookie,
+    body: { id: Number(me), action: "admin", on: false } });
+  check("another administrator can demote the first", asSecond.status === 200, `${asSecond.status}`);
+  const lastOne = await call("/api/portal/accounts", { method: "POST", cookie: second.cookie,
+    body: { id: Number(me), action: "admin", on: false } });
+  check("demoting somebody who is not one is harmless", lastOne.status === 200, `${lastOne.status}`);
+
+  // admin's session is no longer an administrator's, so put it back.
+  await call("/api/portal/accounts", { method: "POST", cookie: second.cookie,
+    body: { id: Number(me), action: "admin", on: true } });
+  const restored = await get();
+  check("the first administrator is back", restored.body.totals.admins === 2,
+    `${restored.body.totals.admins}`);
+
+  /* --- signing somebody out -------------------------------------------- */
+  out = await act({ id: Number(aPupil.id), action: "signout" });
+  check("somebody can be signed out everywhere", out.status === 200 && out.body.ok === true);
+  check("and it says so", out.body.message.includes("signed out") || out.body.message.includes("not signed in"),
+    out.body.message);
+  const after = await get();
+  check("their sessions are gone",
+    after.body.accounts.find((a) => a.id === aPupil.id)?.sessions === 0);
+
+  /* --- taking an account away ------------------------------------------ */
+  const roll = await call("/api/portal/pupils?q=Balogun", { cookie: admin.cookie });
+  const onRollBefore = roll.body.pupils.length;
+  check("they are on the roll before", onRollBefore === 1, `${onRollBefore}`);
+
+  out = await drop(aPupil.id);
+  check("an account can be taken away", out.status === 200 && out.body.ok === true, `${out.status}`);
+  check("it says the school record is untouched", out.body.message.includes("untouched"), out.body.message);
+  check("and it is gone from the list", !out.body.accounts.some((a) => a.id === aPupil.id));
+
+  const rollAfter = await call("/api/portal/pupils?q=Balogun", { cookie: admin.cookie });
+  check("the pupil stays on the register, only the way in is withdrawn",
+    rollAfter.body.pupils.length === onRollBefore,
+    `${onRollBefore} -> ${rollAfter.body.pupils.length}`);
+
+  out = await drop(aPupil.id);
+  check("taking it away twice is a plain 404", out.status === 404, `${out.status}`);
+  out = await drop("nonsense");
+  check("a nonsense id is refused", out.status === 400, `${out.status}`);
+  out = await act({ id: Number(other.id), action: "explode" });
+  check("an action that is not one is refused", out.status === 400, `${out.status}`);
+
+  /* --- who may do any of it -------------------------------------------- */
+  for (const [who, name] of [[parent, "a parent"], [teacher, "a teacher who is not an admin"]]) {
+    const tried = await call("/api/portal/accounts", { method: "POST", cookie: who.cookie,
+      body: { id: Number(other.id), action: "admin", on: true } });
+    check(`${name} cannot hand out administrator`, tried.status === 403, `${tried.status}`);
+    const gone = await call(`/api/portal/accounts?id=${other.id}`, { method: "DELETE", cookie: who.cookie });
+    check(`${name} cannot take an account away`, gone.status === 403, `${gone.status}`);
+  }
+  // Whatever has been done above, the school still has a way in.
+  const finally_ = await get();
+  check("the school is never left without an administrator", finally_.body.totals.admins >= 1,
+    `${finally_.body.totals.admins}`);
+
+  const anon = await call("/api/portal/accounts");
+  check("a stranger sees nothing", anon.status === 401, `${anon.status}`);
+  const wrongMethod = await call("/api/portal/accounts", { method: "PUT", cookie: admin.cookie, body: {} });
+  check("an unsupported method is refused", wrongMethod.status === 405, `${wrongMethod.status}`);
+}
+
 /* ------------------------------------------- taking a register, entering results */
 console.log("\ntaking a register");
 {
@@ -579,7 +740,7 @@ console.log("\neach role stays on its own dashboard");
 
   for (const path of ["/api/portal/parent", "/api/portal/teacher", "/api/portal/admin",
                       "/api/portal/pupils", "/api/portal/staff", "/api/portal/register",
-                      "/api/portal/marks"]) {
+                      "/api/portal/marks", "/api/portal/timetable", "/api/portal/accounts"]) {
     const r = await call(path);
     check(`${path} needs a sign-in`, r.status === 401, String(r.status));
   }
@@ -594,6 +755,8 @@ console.log("\ndemo preview, with no sign-in");
     ["parent", ["parent", "child"]], ["teacher", ["teacher", "classes"]],
     ["admin", ["admin", "totals"]], ["pupils", ["admin", "pupils", "classes"]],
     ["staff", ["admin", "staff", "totals"]], ["announcements", ["admin", "announcements"]],
+    ["timetable", ["admin", "classes", "totals"]],
+    ["accounts", ["admin", "accounts", "totals"]],
     ["register", ["classes", "className", "date", "pupils", "summary"]],
     ["marks", ["classes", "className", "subjects", "pupils", "summary"]],
   ];

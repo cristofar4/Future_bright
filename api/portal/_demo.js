@@ -136,7 +136,7 @@ const DEMO_CLASSES = [
 ];
 
 /** The same shape every real endpoint returns, so the page needs no special case. */
-export function demoPayload(section) {
+export function demoPayload(section, wanted) {
   const weekday = Math.min(Math.max(new Date().getDay(), 1), 5);
   const base = { demo: true, student: DEMO_STUDENT, term: TERM,
                  unreadMessages: MESSAGES.filter((m) => !m.read).length };
@@ -356,6 +356,81 @@ export function demoPayload(section) {
           entered: done.length, total: here.length,
           average: Math.round(done.reduce((n, p) => n + p.score, 0) / done.length),
         },
+      };
+    }
+
+    case "timetable": {
+      const ADMIN = { isAdmin: true, fullName: "Dr. Emeka Anyanwu", firstName: "Emeka",
+                      initials: "EA", email: "principal@brightfuture.edu.ng", role: "teacher" };
+      const rows = [
+        { class_name: "JSS1A", pupils: 28 }, { class_name: "JSS2A", pupils: 26 },
+        { class_name: "JSS3A", pupils: 22 }, { class_name: "SS1A", pupils: 26 },
+        { class_name: "SS2A", pupils: 24 }, { class_name: "SS3A", pupils: 19 },
+      ].map((c) => ({
+        ...c,
+        class_level: c.class_name.replace(/[A-Z]$/, ""),
+        class_arm: c.class_name.slice(-1),
+        periods: 25, subjects: 5, teachers: 5,
+      }));
+      const out = {
+        ...base,
+        admin: ADMIN,
+        classes: rows,
+        totals: { classes: rows.length, pupils: 145, periods: 150, empty: 0 },
+      };
+
+      // The preview should be able to open a class, not only list them.
+      const asked = rows.find((c) => c.class_name === wanted);
+      if (!asked) return out;
+
+      const DAY = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+      return {
+        ...out,
+        className: asked.class_name,
+        klass: asked,
+        week: [1, 2, 3, 4, 5].map((weekday) => ({
+          weekday,
+          name: DAY[weekday],
+          lessons: lessonsFor(weekday),
+        })),
+        staff: [
+          { teacher: "Mr. Okafor", subjects: "Mathematics", periods: 5 },
+          { teacher: "Mrs. Bello", subjects: "English Language", periods: 5 },
+          { teacher: "Mr. Okoro", subjects: "Biology", periods: 5 },
+          { teacher: "Mrs. Ibrahim", subjects: "Computer Studies", periods: 5 },
+          { teacher: "Mr. Adeyemi", subjects: "Physics", periods: 5 },
+        ],
+        pupils: DEMO_ROLL.slice(0, 6).map((p) => ({
+          id: p.id, admissionNo: p.admissionNo, fullName: p.fullName,
+          surname: p.surname, initials: p.initials,
+        })),
+      };
+    }
+
+    case "accounts": {
+      const ADMIN = { isAdmin: true, id: "4", fullName: "Dr. Emeka Anyanwu", firstName: "Emeka",
+                      initials: "EA", email: "principal@brightfuture.edu.ng", role: "teacher" };
+      const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
+      return {
+        ...base,
+        admin: ADMIN,
+        accounts: [
+          { id: "1", role: "student", isAdmin: false, fullName: "Daniel James", initials: "DJ",
+            email: "daniel@example.com", phone: "08012223344", joinedOn: ago(900),
+            lastLogin: ago(3), sessions: 1, linkedTo: "BFS/2024/0178  \u00b7  SS2A" },
+          { id: "2", role: "parent", isAdmin: false, fullName: "Mrs. Ada James", initials: "AJ",
+            email: "mrs.james@example.com", phone: "08062223344", joinedOn: ago(880),
+            lastLogin: ago(30), sessions: 0, linkedTo: "BFS/2024/0178  \u00b7  SS2A" },
+          { id: "3", role: "teacher", isAdmin: false, fullName: "Mrs. Folake Ogun", initials: "FO",
+            email: "f.ogun@brightfuture.edu.ng", phone: null, joinedOn: ago(1400),
+            lastLogin: null, sessions: 0, linkedTo: "BFS/STF/014" },
+          { id: "4", role: "teacher", isAdmin: true, fullName: "Dr. Emeka Anyanwu", initials: "EA",
+            email: "principal@brightfuture.edu.ng", phone: null, joinedOn: ago(9600),
+            lastLogin: ago(1), sessions: 2, linkedTo: "BFS/STF/001" },
+        ],
+        totals: { accounts: 431, students: 318, parents: 96, teachers: 17, admins: 1, signed_in: 27 },
+        page: 1, pages: 18, perPage: 25, total: 431,
+        filters: { q: "", role: "all" },
       };
     }
 

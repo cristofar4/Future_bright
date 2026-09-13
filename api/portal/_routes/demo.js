@@ -9,7 +9,7 @@ import { demoPayload } from "../_demo.js";
 const SECTIONS = ["dashboard", "classes", "assignments", "results", "attendance",
                   "messages", "profile", "calendar", "parent", "teacher", "admin",
                   "pupils", "staff", "announcements",
-                  "register", "marks"];
+                  "register", "marks", "timetable", "accounts"];
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
@@ -19,5 +19,6 @@ export default async function handler(req, res) {
   if (!SECTIONS.includes(section)) {
     return json(res, 400, { error: "unknown_section", message: "No such section." });
   }
-  return json(res, 200, demoPayload(section));
+  // A preview can be asked for one class, the same way the real page is.
+  return json(res, 200, demoPayload(section, String(url.searchParams.get("class") || "").trim()));
 }

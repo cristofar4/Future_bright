@@ -762,3 +762,78 @@ body[data-page="portal"] { background: var(--portal-bg); }
   .marks label { flex: 1; min-width: 0; }
   .quick-marks { margin-left: 0; width: 100%; }
 }
+
+/* ==========================================================================
+   Classes, and portal accounts
+   ========================================================================== */
+
+/* One class, as a card you can open. */
+.class-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.class-card {
+  display: block; text-align: left; width: 100%; cursor: pointer; font: inherit; color: inherit;
+  background: #fff; border: 1px solid var(--line); border-radius: var(--card-radius);
+  padding: 1.15rem; box-shadow: 0 1px 3px rgba(16,34,63,.05);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.class-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.class-card:focus-visible { outline: 3px solid var(--blue-500); outline-offset: 2px; }
+.class-card__name {
+  display: block; font-family: var(--font-head); font-weight: 800;
+  font-size: 1.25rem; color: var(--navy-900); margin-bottom: .1rem;
+}
+.class-card__sub { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .8rem; }
+.class-card__facts { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+.class-card__facts span { font-size: .78rem; color: var(--muted); }
+.class-card__facts b { display: block; font-family: var(--font-head); font-size: .98rem; color: var(--ink); }
+
+/* The week, one day per column. */
+.week-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .8rem; }
+.week-day { min-width: 0; }
+.week-day h3 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--muted); margin: 0 0 .5rem; padding-bottom: .4rem;
+  border-bottom: 1px solid var(--line);
+}
+.week-slot {
+  background: var(--soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: .5rem .6rem; margin-bottom: .45rem;
+}
+.week-slot strong { display: block; font-family: var(--font-head); font-size: .8rem; color: var(--ink); }
+.week-slot span { display: block; font-size: .72rem; color: var(--muted); }
+.week-day .empty-line { font-size: .78rem; }
+
+/* What an account can be done to. */
+.acct-admin { display: flex; align-items: center; gap: .85rem; padding: .85rem .35rem; flex-wrap: wrap; }
+.acct-admin + .acct-admin { border-top: 1px solid var(--line); }
+.acct-admin__who { flex: 1; min-width: 11rem; }
+.acct-admin__who strong {
+  display: block; font-family: var(--font-head); font-size: .92rem; color: var(--ink);
+  overflow-wrap: anywhere;
+}
+/* Direct child only: this is the line under the name, not every span that
+   happens to sit inside it. A descendant match turned the "You" pill into a
+   full-width bar. */
+.acct-admin__who > span { display: block; font-size: .79rem; color: var(--muted); overflow-wrap: anywhere; }
+.acct-admin__meta { flex: none; width: 9rem; font-size: .78rem; color: var(--muted); text-align: right; }
+.acct-admin__acts { display: flex; align-items: center; gap: .4rem; flex: none; flex-wrap: wrap; }
+.acct-admin__acts .btn { padding: .35rem .7rem; font-size: .76rem; }
+.acct-admin.is-you { background: var(--blue-50); border-radius: 10px; }
+.you-pill {
+  display: inline-block;                 /* never inherit a block from a parent rule */
+  font-family: var(--font-head); font-weight: 700; font-size: .7rem;
+  background: var(--navy-900); color: #fff; border-radius: 999px; padding: .18rem .55rem;
+  vertical-align: middle;
+}
+.dot-live {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green); margin-right: .35rem; vertical-align: middle;
+}
+
+@media (max-width: 1180px) { .class-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px)  { .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px)  {
+  .class-grid { grid-template-columns: 1fr; }
+  .week-grid { grid-template-columns: 1fr; }
+  .acct-admin__meta { display: none; }
+  .acct-admin__acts { width: 100%; }
+}

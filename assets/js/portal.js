@@ -136,7 +136,8 @@
      is headed by the parent, not by the child it is about. */
   var IDENTITY = { parent: "parent", teacher: "teacher", admin: "admin",
                    pupils: "admin", staff: "admin", notices: "admin",
-                   register: "admin", marks: "admin" };
+                   register: "admin", marks: "admin",
+                   timetable: "admin", accounts: "admin" };
 
   function applyIdentity(data) {
     var key = IDENTITY[PAGE] || "student";
@@ -893,6 +894,124 @@
     });
   }
 
+  /* --- one account, and what may be done to it --------------------------- */
+
+  var ROLE_LABEL = { student: "Pupil", parent: "Parent", teacher: "Staff" };
+
+  function renderAccountRows(d) {
+    var host = document.querySelector("[data-accounts]");
+    var list = d.accounts || [];
+    clear(host);
+    if (!list.length) {
+      host.appendChild(el("p", "empty-line", d.filters.q || d.filters.role !== "all"
+        ? "No account matches that."
+        : "Nobody has created an account yet."));
+      return;
+    }
+
+    list.forEach(function (a) {
+      var you = a.id === d.admin.id;
+      var row = el("div", "acct-admin" + (you ? " is-you" : ""));
+      row.setAttribute("data-account", a.id);
+
+      var avatar = el("span", "avatar avatar--sm", a.initials);
+      avatar.setAttribute("aria-hidden", "true");
+      row.appendChild(avatar);
+
+      var who = el("span", "acct-admin__who");
+      var name = el("strong");
+      name.appendChild(document.createTextNode(a.fullName));
+      if (you) {
+        name.appendChild(document.createTextNode(" "));
+        name.appendChild(el("span", "you-pill", "You"));
+      }
+      who.appendChild(name);
+      who.appendChild(el("span", null,
+        [a.email, a.linkedTo].filter(Boolean).join("  \u00b7  ")));
+      row.appendChild(who);
+
+      row.appendChild(el("span", "role-pill role-pill--" + (a.isAdmin ? "admin" : a.role),
+        a.isAdmin ? "Admin" : (ROLE_LABEL[a.role] || a.role)));
+
+      var meta = el("span", "acct-admin__meta");
+      if (a.sessions) {
+        var live = el("span");
+        live.innerHTML = '<span class="dot-live"></span>';
+        live.appendChild(document.createTextNode("Signed in"));
+        meta.appendChild(live);
+      } else {
+        meta.textContent = a.lastLogin ? "Seen " + whenSent(a.lastLogin) : "Never signed in";
+      }
+      row.appendChild(meta);
+
+      // Nothing on your own row: an accident there costs you the way back in.
+      var acts = el("span", "acct-admin__acts");
+      if (!you) {
+        if (a.sessions) {
+          acts.appendChild(accountButton("Sign out", "btn btn--sm btn--outline", function () {
+            sendAccount("POST", "/api/portal/accounts", { id: Number(a.id), action: "signout" });
+          }));
+        }
+        acts.appendChild(accountButton(a.isAdmin ? "Remove admin" : "Make admin",
+          "btn btn--sm btn--outline", function () {
+            sendAccount("POST", "/api/portal/accounts",
+              { id: Number(a.id), action: "admin", on: !a.isAdmin });
+          }));
+        acts.appendChild(accountButton("Remove", "btn btn--sm btn--outline", function () {
+          askToRemove(row, a);
+        }));
+      }
+      row.appendChild(acts);
+      host.appendChild(row);
+    });
+  }
+
+  function accountButton(label, className, onClick) {
+    var b = el("button", className, label);
+    b.type = "button";
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  /* Taking an account away is the one thing here that cannot be undone from
+     this page, so it asks first and says exactly what it does not touch. */
+  function askToRemove(row, a) {
+    if (row.querySelector(".confirm-line")) { return; }
+    var line = el("div", "confirm-line");
+    line.style.width = "100%";
+    line.appendChild(el("span", null,
+      "Take away " + a.fullName + "\u2019s way in? Their school record stays, and they can sign up again."));
+    var yes = accountButton("Yes, remove it", "btn btn--sm", function () {
+      yes.setAttribute("aria-busy", "true");
+      sendAccount("DELETE", "/api/portal/accounts?id=" + encodeURIComponent(a.id));
+    });
+    var no = accountButton("Keep it", "btn btn--sm btn--outline", function () { line.remove(); });
+    line.appendChild(yes);
+    line.appendChild(no);
+    row.appendChild(line);
+  }
+
+  async function sendAccount(method, url, payload) {
+    var box = document.querySelector("[data-alert]");
+    box.classList.remove("is-shown");
+    try {
+      var res = await fetch(url, {
+        method: method,
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: payload === undefined ? undefined : JSON.stringify(payload),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (res.status === 401) { window.location.replace("login.html"); return; }
+      if (!res.ok) { noticeAlert(data.message || "That did not work.", "error"); return; }
+      applyIdentity(data);
+      RENDER.accounts(data);
+      noticeAlert(data.message || "Done.", "ok");
+    } catch (err) {
+      noticeAlert("We could not reach the server. Please try again.", "error");
+    }
+  }
+
   function setKpi(key, value) {
     setAll('[data-kpi="' + key + '"]', value);
   }
@@ -1425,6 +1544,135 @@
       document.title = "Enter Results | Bright Future Secondary School";
     },
 
+    /* --- classes ---------------------------------------------------------- */
+    timetable: function (d) {
+      if (d.className) {                               // one class
+        showView("one");
+        setAll("[data-one-name]", d.className);
+        setAll("[data-one-pupils]", plural(d.klass.pupils, "pupil"));
+        setAll("[data-one-periods]", d.klass.periods
+          ? plural(d.klass.periods, "period") + " a week" : "no timetable yet");
+
+        var week = document.querySelector("[data-week]");
+        clear(week);
+        (d.week || []).forEach(function (day) {
+          var col = el("div", "week-day");
+          col.appendChild(el("h3", null, day.name));
+          if (!day.lessons.length) {
+            col.appendChild(el("p", "empty-line", "Nothing."));
+          } else {
+            day.lessons.forEach(function (l) {
+              var slot = el("div", "week-slot");
+              slot.appendChild(el("strong", null, l.subject));
+              slot.appendChild(el("span", null, l.starts_at + " - " + l.ends_at));
+              slot.appendChild(el("span", null, [l.teacher, l.room].filter(Boolean).join("  \u00b7  ")));
+              col.appendChild(slot);
+            });
+          }
+          week.appendChild(col);
+        });
+
+        var staff = document.querySelector("[data-one-staff]");
+        clear(staff);
+        if (!(d.staff || []).length) {
+          staff.appendChild(el("p", "empty-line", "Nobody is timetabled to this class."));
+        } else {
+          d.staff.forEach(function (t) {
+            var line = el("div", "class-row");
+            line.appendChild(el("span", "class-row__name", ""));
+            var what = el("span", "class-row__what");
+            what.appendChild(el("strong", null, t.teacher));
+            what.appendChild(el("span", null, t.subjects));
+            line.appendChild(what);
+            line.appendChild(el("span", "class-row__count", plural(t.periods, "period")));
+            staff.appendChild(line);
+          });
+        }
+
+        var roll = document.querySelector("[data-one-pupils-list]");
+        clear(roll);
+        if (!(d.pupils || []).length) {
+          roll.appendChild(el("p", "empty-line", "Nobody is on this class register."));
+        } else {
+          d.pupils.forEach(function (p) {
+            var line = el("div", "acct-row");
+            var who = el("span", "acct-row__who");
+            who.appendChild(el("strong", null, p.fullName));
+            who.appendChild(el("span", null, p.admissionNo));
+            line.appendChild(who);
+            roll.appendChild(line);
+          });
+        }
+        document.title = d.className + " | Bright Future Secondary School";
+        return;
+      }
+
+      showView("list");                                // every class
+      var t = d.totals || {};
+      setKpi("classes", t.classes || 0);
+      setKpi("pupils", t.pupils || 0);
+      setKpi("periods", t.periods || 0);
+      setKpi("empty", t.empty || 0);
+
+      var host = document.querySelector("[data-classes]");
+      clear(host);
+      if (!(d.classes || []).length) {
+        host.appendChild(el("p", "empty-line",
+          "No class exists yet. Import the register, or load the sample data from the setup page."));
+        return;
+      }
+      d.classes.forEach(function (c) {
+        var card = el("button", "class-card");
+        card.type = "button";
+        card.appendChild(el("span", "class-card__name", c.class_name));
+        card.appendChild(el("span", "class-card__sub",
+          c.periods ? plural(c.subjects, "subject") + " with " + plural(c.teachers, "teacher")
+                    : "No timetable yet"));
+        var facts = el("span", "class-card__facts");
+        [["Pupils", c.pupils], ["Periods", c.periods], ["Subjects", c.subjects]].forEach(function (f) {
+          var box = el("span");
+          box.appendChild(el("b", null, f[1]));
+          box.appendChild(document.createTextNode(f[0]));
+          facts.appendChild(box);
+        });
+        card.appendChild(facts);
+        card.addEventListener("click", function () {
+          var url = new URL(window.location.href);
+          url.searchParams.set("class", c.class_name);
+          window.location.href = url.toString();
+        });
+        host.appendChild(card);
+      });
+      document.title = "Classes | Bright Future Secondary School";
+    },
+
+    /* --- portal accounts --------------------------------------------------- */
+    accounts: function (d) {
+      var t = d.totals || {};
+      setKpi("accounts", t.accounts || 0);
+      setKpi("admins", t.admins || 0);
+      setKpi("signed_in", t.signed_in || 0);
+      setKpi("teachers", t.teachers || 0);
+
+      renderAccountRows(d);
+      initList(d, {
+        chips: function (data) {
+          return [
+            { label: "Everyone", on: data.filters.role === "all", params: { role: "", page: "" } },
+            { label: "Pupils", count: t.students, on: data.filters.role === "student",
+              params: { role: "student", page: "" } },
+            { label: "Parents", count: t.parents, on: data.filters.role === "parent",
+              params: { role: "parent", page: "" } },
+            { label: "Staff", count: t.teachers, on: data.filters.role === "teacher",
+              params: { role: "teacher", page: "" } },
+            { label: "Administrators", count: t.admins, on: data.filters.role === "admin",
+              params: { role: "admin", page: "" } },
+          ];
+        },
+      });
+      document.title = "Portal Accounts | Bright Future Secondary School";
+    },
+
     /* --- the notice board ------------------------------------------------ */
     notices: function (d) {
       var t = d.totals || {};
@@ -1522,15 +1770,19 @@
     parent: "parent", teacher: "teacher", admin: "admin",
     pupils: "pupils", staff: "staff", notices: "announcements",
     register: "register", marks: "marks",
+    timetable: "timetable", accounts: "accounts",
   };
 
   // Search, class, status and page live in the page's own address, so a result
   // can be linked to and the back button does what it looks like it does.
-  var FORWARD = ["id", "q", "class", "status", "page", "date", "subject"];
+  var FORWARD = ["id", "q", "class", "status", "page", "date", "subject", "role"];
 
   function apiUrl(section) {
     if (DEMO) {
-      return "/api/portal/demo?section=" + encodeURIComponent(section === "dashboard" ? "dashboard" : section);
+      // A preview can be asked for one class, the same as the real page.
+      var klass = new URLSearchParams(window.location.search).get("class");
+      return "/api/portal/demo?section=" + encodeURIComponent(section === "dashboard" ? "dashboard" : section)
+        + (klass ? "&class=" + encodeURIComponent(klass) : "");
     }
     var here = new URLSearchParams(window.location.search);
     var pass = new URLSearchParams();

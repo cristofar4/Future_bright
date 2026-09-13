@@ -31,6 +31,8 @@ Open `index.html` in a browser and it works.
 | `admin-notices.html` | The notice board: write, edit, schedule and take down announcements |
 | `teacher-register.html` | Take a register: mark a class present, absent or late, any day up to today |
 | `teacher-results.html` | Enter results: a score per pupil for a subject, with its WAEC grade |
+| `admin-classes.html` | Every class, its week, who teaches it and who is on its register |
+| `admin-accounts.html` | Who can sign in: sign someone out, make an administrator, withdraw access |
 | `portal-profile.html` | The pupil's school record and subjects |
 | `portal-classes.html` | Weekly timetable, one tab per day |
 | `portal-assignments.html` | All assignments, filterable by status |
@@ -62,7 +64,8 @@ Open `index.html` in a browser and it works.
 │   └── portal/_routes/           # dashboard, classes, assignments, results, attendance,
 │                                 #   messages, profile, password, demo,
 │                                 #   parent, teacher, admin, pupils, staff,
-│                                 #   announcements, register, marks
+│                                 #   announcements, register, marks,
+│                                 #   timetable, accounts
 ├── db/
 │   ├── schema.sql                # accounts, sessions, register
 │   ├── portal-schema.sql         # timetable, assignments, results, attendance
@@ -79,7 +82,7 @@ Open `index.html` in a browser and it works.
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
 │   ├── test-portal.mjs           # 31 pupil dashboard tests
 │   ├── test-signup-mode.mjs      # 25 open/closed sign-up tests
-│   └── test-roles.mjs            # 275 parent / teacher / admin tests
+│   └── test-roles.mjs            # 335 parent / teacher / admin tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -289,7 +292,7 @@ npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
 npm run check        # deployment checks, no database needed
-npm test             # checks + 396 API tests, needs DATABASE_URL
+npm test             # checks + 456 API tests, needs DATABASE_URL
 npm run test:roles   # just the parent, teacher and admin dashboards
 ```
 
@@ -411,6 +414,8 @@ specifically rather than letting it look like an unreachable host.
 | `/api/portal/announcements` | GET, POST, PATCH, DELETE | The notice board |
 | `/api/portal/register` | GET, POST | A class ready to mark, and saving the marks |
 | `/api/portal/marks` | GET, POST | A class and subject ready to score, and saving the scores |
+| `/api/portal/timetable` | GET | Every class; `?class=` for one, with its week and staff |
+| `/api/portal/accounts` | GET, POST, DELETE | Portal accounts, and what may be done to them |
 | `/api/portal/classes` | GET | The week's timetable for their class |
 | `/api/portal/assignments` | GET | Assignments with this pupil's submitted state |
 | `/api/portal/results` | GET | Subject scores and the overall average |
@@ -494,6 +499,28 @@ A register cannot be taken for a day that has not happened. Marking the same day
 corrects it rather than duplicating it, which is what the unique constraint on
 `(register_id, on_date)` is for.
 
+### Classes, and portal accounts
+
+`admin-classes.html` is every class the school has: on the register, on the timetable, or
+both. A class with pupils and no timetable is worth seeing, and so is a timetable nobody is
+enrolled in. Opening one shows its week day by day, who teaches it, and who is on its
+register. Read-only: changing a timetable is changing the school's own data, which belongs
+with the import.
+
+`admin-accounts.html` is the page that can lock somebody out, so the rules matter more than
+the page:
+
+- **you cannot change your own administrator flag, or remove your own account** - an
+  accident there costs you the way back in;
+- **the last administrator cannot be removed or demoted.** That rule cannot actually fire
+  while the first one stands, since the only person a lone administrator could remove is
+  themselves. It stays because it is the rule that matters: relax the first one later and
+  this is what still stops the school locking itself out.
+
+Withdrawing access **never touches the school record**. Sessions and messages go with the
+account; the pupil stays on the register and can sign up again. The confirmation says so
+before you press it.
+
 Scores run 0 to 100 and show their WAEC grade as they are typed. **An empty box means no
 score recorded, which is not the same as nought**: clearing one deletes the row rather than
 storing a zero that would drag an average down. Results belong to the term that is running;
@@ -570,12 +597,11 @@ the school can see the portal before their register is loaded.
 
 ### Still to do
 
-- **Some deeper sections are not built.** Classes and Portal Accounts for an administrator,
-  assignments for staff, fees for parents; those sidebar items are labelled "Soon" rather
-  than linking nowhere. Messages and settings are pupil-only for now.
-- **An administrator cannot edit a record from the portal.** Pupil and staff records are
-  read-only: changing one still means importing the register again. Announcements,
-  registers and results are the three things the portal writes.
+- **Every administrator section is built.** What is still labelled "Soon" is assignments
+  for staff and fees for parents. Messages and settings are pupil-only for now.
+- **An administrator cannot edit a record or a timetable from the portal.** Pupil, staff
+  and class records are read-only: changing one still means importing the register again.
+  Announcements, registers, results and portal accounts are what the portal writes.
 - **Portal search does nothing**, and there is no way to hand work in or reply to a message
   from the portal. Each page says so where it applies.
 - **No password reset.** The login page tells students to ask their form teacher and
