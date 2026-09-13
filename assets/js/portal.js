@@ -134,7 +134,8 @@
 
   /* Which object in the payload describes the person signed in. A parent page
      is headed by the parent, not by the child it is about. */
-  var IDENTITY = { parent: "parent", teacher: "teacher", admin: "admin" };
+  var IDENTITY = { parent: "parent", teacher: "teacher", admin: "admin",
+                   pupils: "admin", staff: "admin" };
 
   function applyIdentity(data) {
     var key = IDENTITY[PAGE] || "student";
@@ -288,6 +289,130 @@
       requestAnimationFrame(function () {
         fill.style.width = Math.max(4, (row.value / top) * 100) + "%";
       });
+    });
+  }
+
+  /* --- the roll and the staff list ------------------------------------- */
+
+  /** A row someone can open. Everything from the API becomes text, never markup. */
+  function personRow(row, opts) {
+    var item = el("button", "person");
+    item.type = "button";
+
+    var avatar = el("span", "avatar avatar--sm", row.initials || "");
+    avatar.setAttribute("aria-hidden", "true");
+    item.appendChild(avatar);
+
+    var who = el("span", "person__who");
+    who.appendChild(el("strong", null, row.fullName || "(no name)"));
+    who.appendChild(el("span", null, opts.subtitle(row)));
+    item.appendChild(who);
+
+    if (opts.tag) { item.appendChild(el("span", "person__tag", opts.tag(row))); }
+    item.appendChild(el("span", "person__meta", opts.meta(row)));
+    var chev = el("span");
+    chev.innerHTML = svg('<path d="M9 6l6 6-6 6"/>');   // fixed markup, no data in it
+    item.appendChild(chev.firstChild);
+
+    item.addEventListener("click", function () {
+      var url = new URL(window.location.href);
+      url.searchParams.set("id", row.id);
+      window.location.href = url.toString();
+    });
+    return item;
+  }
+
+  function renderPeople(host, list, opts) {
+    clear(host);
+    if (!list.length) {
+      host.appendChild(el("p", "empty-line", opts.empty));
+      return;
+    }
+    var wrap = el("div", "people");
+    list.forEach(function (row) { wrap.appendChild(personRow(row, opts)); });
+    host.appendChild(wrap);
+  }
+
+  function statePill(status) {
+    var known = status === "active" || status === "left";
+    var pill = el("span", "state-pill state-pill--" + (known ? status : "none"),
+      status === "active" ? "On the register" : status === "left" ? "Has left" : "Unknown");
+    return pill;
+  }
+
+  /** Search box, class filters and paging, shared by both list pages. */
+  function initList(data, opts) {
+    var form = document.querySelector("[data-list-form]");
+    var input = document.querySelector("[data-q]");
+    var chips = document.querySelector("[data-filters]");
+    var pager = document.querySelector("[data-pager]");
+
+    function go(params) {
+      var url = new URL(window.location.href);
+      url.searchParams.delete("id");
+      Object.keys(params).forEach(function (k) {
+        if (params[k]) { url.searchParams.set(k, params[k]); }
+        else { url.searchParams.delete(k); }
+      });
+      window.location.href = url.toString();
+    }
+
+    if (input) { input.value = data.filters.q || ""; }
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        go({ q: input.value.trim(), page: "" });
+      });
+    }
+
+    clear(chips);
+    opts.chips(data).forEach(function (c) {
+      var b = el("button", "chip" + (c.on ? " is-on" : ""), c.label);
+      b.type = "button";
+      if (c.count !== undefined) { b.appendChild(el("span", null, c.count)); }
+      b.addEventListener("click", function () { go(c.params); });
+      chips.appendChild(b);
+    });
+
+    setAll("[data-count]", data.total === 1 ? "1 person" : data.total + " people");
+
+    if (data.pages > 1) {
+      pager.hidden = false;
+      setAll("[data-page-note]", "Page " + data.page + " of " + data.pages);
+      var prev = pager.querySelector("[data-prev]");
+      var next = pager.querySelector("[data-next]");
+      prev.disabled = data.page <= 1;
+      next.disabled = data.page >= data.pages;
+      prev.addEventListener("click", function () { go({ page: String(data.page - 1) }); });
+      next.addEventListener("click", function () { go({ page: String(data.page + 1) }); });
+    }
+  }
+
+  /** Switch the page between the list and one person's record. */
+  function showView(name) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (n) {
+      n.hidden = n.getAttribute("data-view") !== name;
+    });
+  }
+
+  function renderAccounts(host, list) {
+    clear(host);
+    if (!list.length) {
+      host.appendChild(el("p", "empty-line", "Nobody has created an account for this record yet."));
+      return;
+    }
+    list.forEach(function (row) {
+      var line = el("div", "acct-row");
+      var who = el("span", "acct-row__who");
+      who.appendChild(el("strong", null, row.full_name));
+      who.appendChild(el("span", null, row.email));
+      line.appendChild(who);
+      var role = row.is_admin ? "admin" : row.role;
+      line.appendChild(el("span", "role-pill role-pill--" + role,
+        role.charAt(0).toUpperCase() + role.slice(1)));
+      line.appendChild(el("span", "acct-row__when",
+        row.last_login_at ? "Seen " + whenSent(row.last_login_at) : "Never signed in"));
+      host.appendChild(line);
     });
   }
 
@@ -623,6 +748,150 @@
       document.title = "Teacher Dashboard | Bright Future Secondary School";
     },
 
+    /* --- the roll ------------------------------------------------------- */
+    pupils: function (d) {
+      if (d.pupil) {                                   // one pupil's record
+        showView("one");
+        var p = d.pupil;
+        setAll("[data-one-name]", p.fullName);
+        setAll("[data-one-initials]", p.initials);
+        setAll("[data-one-class]", p.className);
+        setAll("[data-one-admission]", p.admissionNo);
+        var state = document.querySelector("[data-one-state]");
+        clear(state); state.appendChild(statePill(p.status));
+
+        renderBars(document.querySelector("[data-one-results]"), d.results || []);
+        renderTasks(document.querySelector("[data-one-tasks]"), d.assignments || []);
+        renderAccounts(document.querySelector("[data-one-accounts]"), d.accounts || []);
+
+        var a = d.attendance || {};
+        renderFacts(document.querySelector("[data-one-facts]"), [
+          ["Admission number", p.admissionNo],
+          ["Class", p.className],
+          ["Average score", d.average === null || d.average === undefined ? "-" : d.average + "%"],
+          ["Attendance", a.percent === null || a.percent === undefined ? "-" : a.percent + "%"],
+          ["Present", plural(a.present || 0, "day")],
+          ["Absent", plural(a.absent || 0, "day")],
+          ["Late", plural(a.late || 0, "day")],
+          ["Guardian email", p.guardianEmail || "Not on file"],
+          ["Guardian phone", p.guardianPhone || "Not on file"],
+          ["On the register since", p.joinedOn ? shortDate(p.joinedOn) : "-"],
+          ["How they got here", p.source === "import" ? "Imported from the school register"
+            : p.source === "signup" ? "Created when they signed up" : "Sample data"],
+        ]);
+        document.title = p.fullName + " | Bright Future Secondary School";
+        return;
+      }
+
+      showView("list");                                // the roll
+      var t = d.totals || {};
+      setKpi("active", t.active || 0);
+      setKpi("left", t.left_school || 0);
+      setKpi("accounts", t.accounts || 0);
+      setKpi("classes", (d.classes || []).length);
+
+      renderPeople(document.querySelector("[data-people]"), d.pupils || [], {
+        empty: d.filters.q || d.filters.class
+          ? "Nobody on the register matches that."
+          : "The register is empty. Import it, or load the sample data from the setup page.",
+        subtitle: function (r) { return r.admissionNo; },
+        tag: function (r) { return r.className; },
+        meta: function (r) {
+          return r.accounts ? plural(r.accounts, "account") : "No account";
+        },
+      });
+
+      initList(d, {
+        chips: function (data) {
+          var out = [{ label: "All classes", on: !data.filters.class, params: { class: "", page: "" } }];
+          (data.classes || []).forEach(function (c) {
+            out.push({
+              label: c.class_name, count: c.pupils,
+              on: data.filters.class === c.class_name,
+              params: { class: c.class_name, page: "" },
+            });
+          });
+          return out;
+        },
+      });
+      document.title = "Pupils | Bright Future Secondary School";
+    },
+
+    /* --- the staff register --------------------------------------------- */
+    staff: function (d) {
+      var one = d.staff && !Array.isArray(d.staff) ? d.staff : null;
+      if (one) {                                       // one member of staff
+        showView("one");
+        setAll("[data-one-name]", one.fullName);
+        setAll("[data-one-initials]", one.initials);
+        setAll("[data-one-staffno]", one.staffNo);
+        setAll("[data-one-email]", one.email || "No email on file");
+        var state = document.querySelector("[data-one-state]");
+        clear(state); state.appendChild(statePill(one.status));
+
+        var host = document.querySelector("[data-one-classes]");
+        var classes = d.classes || [];
+        clear(host);
+        if (!classes.length) {
+          host.appendChild(el("p", "empty-line", "No periods are on the timetable against this name."));
+        } else {
+          classes.forEach(function (row) {
+            var line = el("div", "class-row");
+            line.appendChild(el("span", "class-row__name", row.class_name));
+            var what = el("span", "class-row__what");
+            what.appendChild(el("strong", null, row.subjects || "No subject recorded"));
+            what.appendChild(el("span", null, plural(row.pupils || 0, "pupil") + " on the register"));
+            line.appendChild(what);
+            line.appendChild(el("span", "class-row__count", plural(row.pupils || 0, "pupil")));
+            host.appendChild(line);
+          });
+        }
+
+        renderAccounts(document.querySelector("[data-one-accounts]"), d.accounts || []);
+        renderFacts(document.querySelector("[data-one-facts]"), [
+          ["Staff number", one.staffNo],
+          ["Email on file", one.email || "Not on file"],
+          ["Subjects taught", one.subjects || "None on the timetable"],
+          ["Periods a week", one.periods || 0],
+          ["Classes", classes.length],
+          ["On the register since", one.joinedOn ? shortDate(one.joinedOn) : "-"],
+          ["How they got here", one.source === "import" ? "Imported from the staff register"
+            : one.source === "signup" ? "Created when they signed up" : "Sample data"],
+        ]);
+        document.title = one.fullName + " | Bright Future Secondary School";
+        return;
+      }
+
+      showView("list");                                // the staff list
+      var t = d.totals || {};
+      setKpi("active", t.active || 0);
+      setKpi("left", t.left_school || 0);
+      setKpi("accounts", t.accounts || 0);
+      setKpi("admins", t.admins || 0);
+
+      renderPeople(document.querySelector("[data-people]"), d.staff || [], {
+        empty: d.filters.q
+          ? "Nobody on the staff register matches that."
+          : "The staff register is empty. Import it, or load the sample data from the setup page.",
+        subtitle: function (r) { return r.staffNo + (r.email ? "  \u00b7  " + r.email : ""); },
+        tag: function (r) { return r.subjects ? r.subjects.split(", ")[0] : "No subject"; },
+        meta: function (r) {
+          return r.periods ? plural(r.periods, "period") + " a week" : "No periods";
+        },
+      });
+
+      initList(d, {
+        chips: function (data) {
+          return [
+            { label: "On the register", on: data.filters.status === "active", params: { status: "", page: "" } },
+            { label: "Have left", on: data.filters.status === "left", params: { status: "left", page: "" } },
+            { label: "Everyone", on: data.filters.status === "all", params: { status: "all", page: "" } },
+          ];
+        },
+      });
+      document.title = "Staff | Bright Future Secondary School";
+    },
+
     /* --- administrator: the school, by its numbers ---------------------- */
     admin: function (d) {
       var t = d.totals || {};
@@ -704,11 +973,22 @@
     results: "results", attendance: "attendance", messages: "messages",
     profile: "profile", calendar: "dashboard", resources: "profile", settings: "profile",
     parent: "parent", teacher: "teacher", admin: "admin",
+    pupils: "pupils", staff: "staff",
   };
 
+  // Search, class, status and page live in the page's own address, so a result
+  // can be linked to and the back button does what it looks like it does.
+  var FORWARD = ["id", "q", "class", "status", "page"];
+
   function apiUrl(section) {
-    return DEMO ? "/api/portal/demo?section=" + encodeURIComponent(section === "dashboard" ? "dashboard" : section)
-                : "/api/portal/" + section;
+    if (DEMO) {
+      return "/api/portal/demo?section=" + encodeURIComponent(section === "dashboard" ? "dashboard" : section);
+    }
+    var here = new URLSearchParams(window.location.search);
+    var pass = new URLSearchParams();
+    FORWARD.forEach(function (k) { if (here.has(k)) { pass.set(k, here.get(k)); } });
+    var qs = pass.toString();
+    return "/api/portal/" + section + (qs ? "?" + qs : "");
   }
 
   /* --- chrome ------------------------------------------------------------ */

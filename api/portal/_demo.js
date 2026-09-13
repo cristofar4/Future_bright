@@ -83,6 +83,52 @@ export const DEMO_STUDENT = {
 
 const TERM = { session: "2024/2025", label: "Second Term", daysLeft: 68 };
 
+/* A made-up roll and staff list for the previews. Invented people: nobody here
+   is a real pupil or a real member of staff. */
+function rollRow(i, admission, other, surname, klass, guardian, accounts) {
+  const fullName = other + " " + surname;
+  return {
+    id: String(i), admissionNo: admission, fullName, surname, otherNames: other,
+    initials: (other[0] + surname[0]).toUpperCase(),
+    className: klass, classLevel: klass.replace(/[A-Z]$/, ""),
+    status: "active", source: "import",
+    guardianEmail: guardian, guardianPhone: "+234 80" + (i % 9) + " " + (100 + i) + " " + (2000 + i * 7),
+    joinedOn: new Date(Date.now() - (300 + i * 40) * 86400e3).toISOString(),
+    accounts,
+  };
+}
+
+const DEMO_ROLL = [
+  rollRow(1, "BFS/2024/0178", "Daniel",  "James",   "SS2A", "mrs.james@example.com", 2),
+  rollRow(2, "BFS/2025/0142", "Chidera", "Okafor",  "SS2A", "amaka.okafor@example.com", 1),
+  rollRow(3, "BFS/2025/0187", "Ibrahim", "Bello",   "JSS2A", "amina.bello@example.com", 1),
+  rollRow(4, "BFS/2024/0091", "Tunde",   "Adeyemi", "SS3A", null, 0),
+  rollRow(5, "BFS/2025/0203", "Ngozi",   "Eze",     "JSS1A", "ngozi.family@example.com", 1),
+  rollRow(6, "BFS/2024/0155", "Aisha",   "Musa",    "SS1A", "musa.home@example.com", 2),
+  rollRow(7, "BFS/2025/0166", "Emeka",   "Nwosu",   "JSS3A", null, 0),
+  rollRow(8, "BFS/2024/0119", "Blessing","Oyelaran","SS3A", "oyelaran@example.com", 1),
+];
+
+function staffRow(i, no, other, surname, email, periods, subjects, accounts) {
+  const fullName = other + " " + surname;
+  return {
+    id: String(i), staffNo: no, fullName, surname, otherNames: other,
+    initials: (other[0] + surname[0]).toUpperCase(),
+    email, status: "active", source: "import",
+    joinedOn: new Date(Date.now() - (500 + i * 90) * 86400e3).toISOString(),
+    accounts, periods, subjects,
+  };
+}
+
+const DEMO_STAFF = [
+  staffRow(1, "BFS/STF/014", "Folake", "Ogun",    "f.ogun@brightfuture.edu.ng",    0,  null, 1),
+  staffRow(2, "BFS/STF/022", "Samuel", "Ibrahim", "s.ibrahim@brightfuture.edu.ng", 30, "Computer Studies", 1),
+  staffRow(3, "BFS/STF/007", "Emeka",  "Okafor",  "e.okafor@brightfuture.edu.ng",  30, "Mathematics", 1),
+  staffRow(4, "BFS/STF/011", "Ronke",  "Bello",   "r.bello@brightfuture.edu.ng",   30, "English Language", 1),
+  staffRow(5, "BFS/STF/019", "Chuka",  "Okoro",   null,                            30, "Biology", 0),
+  staffRow(6, "BFS/STF/026", "Tayo",   "Adeyemi", "t.adeyemi@brightfuture.edu.ng", 30, "Physics", 1),
+];
+
 /** The same shape every real endpoint returns, so the page needs no special case. */
 export function demoPayload(section) {
   const weekday = Math.min(Math.max(new Date().getDay(), 1), 5);
@@ -197,6 +243,37 @@ export function demoPayload(section) {
         announcements: ANNOUNCEMENTS.map((a) => ({ ...a, audience: "all" })),
         register: { sources: [{ source: "import", n: 512 }], imported: 512, openSignup: false, override: null },
       };
+
+    case "pupils": {
+      const ADMIN = { isAdmin: true, fullName: "Dr. Emeka Anyanwu", firstName: "Emeka",
+                      initials: "EA", email: "principal@brightfuture.edu.ng", role: "teacher" };
+      return {
+        ...base,
+        admin: ADMIN,
+        pupils: DEMO_ROLL,
+        classes: [
+          { class_name: "JSS1A", pupils: 28 }, { class_name: "JSS2A", pupils: 26 },
+          { class_name: "JSS3A", pupils: 22 }, { class_name: "SS1A", pupils: 26 },
+          { class_name: "SS2A", pupils: 24 }, { class_name: "SS3A", pupils: 19 },
+        ],
+        totals: { active: 145, left_school: 38, all_rows: 183, accounts: 414 },
+        page: 1, pages: 6, perPage: 25, total: 145,
+        filters: { q: "", class: "", status: "active" },
+      };
+    }
+
+    case "staff": {
+      const ADMIN = { isAdmin: true, fullName: "Dr. Emeka Anyanwu", firstName: "Emeka",
+                      initials: "EA", email: "principal@brightfuture.edu.ng", role: "teacher" };
+      return {
+        ...base,
+        admin: ADMIN,
+        staff: DEMO_STAFF,
+        totals: { active: 54, left_school: 3, all_rows: 57, accounts: 17, admins: 1 },
+        page: 1, pages: 3, perPage: 25, total: 54,
+        filters: { q: "", status: "active" },
+      };
+    }
 
     default:
       return base;

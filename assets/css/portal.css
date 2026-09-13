@@ -555,3 +555,78 @@ body[data-page="portal"] { background: var(--portal-bg); }
    need them stacked. */
 @media (max-width: 1180px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 360px)  { .kpi-row { grid-template-columns: 1fr; } }
+
+/* ==========================================================================
+   The roll and the staff list
+   ========================================================================== */
+
+/* --- search and filters --------------------------------------------------- */
+.list-bar {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.1rem;
+}
+.list-search { position: relative; display: flex; align-items: center; flex: 1; min-width: 12rem; max-width: 24rem; }
+.list-search svg { position: absolute; left: .9rem; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+.list-search input {
+  width: 100%; padding: .6rem 1rem .6rem 2.5rem; font: inherit; font-size: .9rem;
+  border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink);
+}
+.list-search input:focus { outline: 2px solid var(--blue-500); outline-offset: 1px; border-color: transparent; }
+.list-count { margin-left: auto; font-size: .85rem; color: var(--muted); }
+.list-count b { font-family: var(--font-head); color: var(--ink); }
+
+/* --- a row per person ----------------------------------------------------- */
+.people { display: grid; }
+.person {
+  display: flex; align-items: center; gap: .85rem; width: 100%;
+  padding: .8rem .35rem; background: none; border: 0; text-align: left;
+  cursor: pointer; font: inherit; color: inherit; border-radius: 10px;
+}
+.person + .person { border-top: 1px solid var(--line); }
+.person:hover { background: var(--blue-50); }
+.person:focus-visible { outline: 2px solid var(--blue-500); outline-offset: -2px; }
+.person__who { flex: 1; min-width: 0; }
+.person__who strong {
+  display: block; font-family: var(--font-head); font-size: .92rem; color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.person__who span { display: block; font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.person__tag {
+  flex: none; font-family: var(--font-head); font-weight: 700; font-size: .78rem;
+  color: var(--blue-700); background: var(--blue-50); border: 1px solid var(--blue-100);
+  border-radius: 999px; padding: .28rem .7rem;
+}
+.person__meta { flex: none; width: 7.5rem; font-size: .8rem; color: var(--muted); text-align: right; }
+.person > svg:last-child { width: 16px; height: 16px; flex: none; color: var(--muted); }
+
+/* --- paging --------------------------------------------------------------- */
+.pager { display: flex; align-items: center; gap: .6rem; justify-content: center; margin-top: 1.1rem; }
+.pager span { font-size: .85rem; color: var(--muted); }
+
+/* --- one person's record -------------------------------------------------- */
+.record-head {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  padding-bottom: 1rem; margin-bottom: .2rem;
+}
+.record-head__text { flex: 1; min-width: 12rem; }
+.record-head__text h1 { font-size: clamp(1.2rem, 1rem + .9vw, 1.6rem); margin: 0 0 .15rem; }
+.record-head__text p { margin: 0; color: var(--muted); font-size: .9rem; }
+.back-link {
+  display: inline-flex; align-items: center; gap: .4rem; font-family: var(--font-head);
+  font-weight: 700; font-size: .85rem; color: var(--blue-600); margin-bottom: .9rem;
+}
+.back-link svg { width: 16px; height: 16px; }
+.back-link:hover { color: var(--blue-700); }
+
+.state-pill {
+  display: inline-block; border-radius: 999px; padding: .26rem .75rem;
+  font-family: var(--font-head); font-weight: 700; font-size: .75rem;
+  border: 1px solid transparent;
+}
+.state-pill--active { background: #e8f7ef; border-color: #c7ecd7; color: #1c7a45; }
+.state-pill--left   { background: #fdecec; border-color: #f6c9c9; color: #9b2c2c; }
+.state-pill--none   { background: var(--soft); border-color: var(--line); color: var(--muted); }
+
+@media (max-width: 620px) {
+  .person__meta { display: none; }
+  .list-count { margin-left: 0; width: 100%; }
+}

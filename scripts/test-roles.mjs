@@ -211,6 +211,99 @@ console.log("\nadmin dashboard");
   check("POST is rejected", post.status === 405, String(post.status));
 }
 
+/* --------------------------------------------------------- the roll and staff */
+console.log("\nthe roll");
+{
+  const r = await call("/api/portal/pupils", { cookie: admin.cookie });
+  check("loads for an administrator", r.status === 200, `${r.status} ${r.body.message || ""}`);
+  const d = r.body;
+
+  check("pupils are listed", d.pupils?.length > 0, `${d.pupils?.length}`);
+  check("a row carries what the list shows",
+    d.pupils.every((p) => p.id && p.admissionNo && p.fullName && p.className),
+    JSON.stringify(d.pupils[0]));
+  check("classes are offered as filters", d.classes?.length > 0);
+  check("totals are counted", Number.isInteger(d.totals?.active) && d.totals.active > 0);
+  check("paging is reported", d.page === 1 && d.pages >= 1 && d.perPage === 25);
+  check("only pupils on the register by default", d.filters.status === "active");
+
+  // Nothing on this page may carry a credential.
+  const serialised = JSON.stringify(d);
+  check("no password hash in the roll", !/password|scrypt|\$2[aby]\$/i.test(serialised));
+  check("no session token in the roll", !/token|session_hash/i.test(serialised));
+
+  const byClass = await call(`/api/portal/pupils?class=${encodeURIComponent(d.classes[0].class_name)}`,
+    { cookie: admin.cookie });
+  check("filtering by class returns only that class",
+    byClass.body.pupils.every((p) => p.className === d.classes[0].class_name),
+    byClass.body.pupils.map((p) => p.className).join(" "));
+
+  const found = await call("/api/portal/pupils?q=James", { cookie: admin.cookie });
+  check("search finds by surname",
+    found.body.pupils.some((p) => p.fullName.includes("James")),
+    found.body.pupils.map((p) => p.fullName).join(", "));
+
+  const none = await call("/api/portal/pupils?q=zzzznobody", { cookie: admin.cookie });
+  check("a search with no matches is empty, not an error",
+    none.status === 200 && none.body.pupils.length === 0);
+
+  // A search term is a parameter, never concatenated into the SQL.
+  const nasty = await call("/api/portal/pupils?q=" + encodeURIComponent("%' OR 1=1 --"),
+    { cookie: admin.cookie });
+  check("a search term cannot break out of the query",
+    nasty.status === 200 && nasty.body.pupils.length === 0, `${nasty.status} ${nasty.body.pupils?.length}`);
+
+  const one = await call(`/api/portal/pupils?id=${d.pupils[0].id}`, { cookie: admin.cookie });
+  check("one pupil's record loads", one.status === 200, `${one.status}`);
+  check("it is the pupil asked for", one.body.pupil?.id === d.pupils[0].id);
+  check("with their results", Array.isArray(one.body.results));
+  check("their attendance", Number.isInteger(one.body.attendance?.total));
+  check("their homework", Array.isArray(one.body.assignments));
+  check("and the accounts linked to them", Array.isArray(one.body.accounts));
+  check("account rows carry no credential",
+    one.body.accounts.every((a) =>
+      Object.keys(a).sort().join(",") === "created_at,email,full_name,last_login_at,phone,role"),
+    Object.keys(one.body.accounts[0] || {}).join(","));
+
+  const missing = await call("/api/portal/pupils?id=99999999", { cookie: admin.cookie });
+  check("an id that is not there is a plain 404", missing.status === 404, `${missing.status}`);
+  const silly = await call("/api/portal/pupils?id=not-a-number", { cookie: admin.cookie });
+  check("a nonsense id is refused", silly.status === 400, `${silly.status}`);
+
+  const post = await call("/api/portal/pupils", { method: "POST", cookie: admin.cookie });
+  check("POST is rejected", post.status === 405, String(post.status));
+}
+
+console.log("\nthe staff register");
+{
+  const r = await call("/api/portal/staff", { cookie: admin.cookie });
+  check("loads for an administrator", r.status === 200, `${r.status} ${r.body.message || ""}`);
+  const d = r.body;
+
+  check("staff are listed", d.staff?.length > 0, `${d.staff?.length}`);
+  check("a row carries the staff number", d.staff.every((p) => p.staffNo && p.fullName));
+  check("what they teach is counted", d.staff.every((p) => Number.isInteger(p.periods)));
+  check("administrators are counted", Number.isInteger(d.totals?.admins) && d.totals.admins >= 1,
+    `${d.totals?.admins}`);
+
+  const serialised = JSON.stringify(d);
+  check("no password hash in the staff list", !/password|scrypt|\$2[aby]\$/i.test(serialised));
+  check("no session token in the staff list", !/token|session_hash/i.test(serialised));
+
+  const found = await call("/api/portal/staff?q=Ibrahim", { cookie: admin.cookie });
+  check("search finds by surname",
+    found.body.staff.some((p) => p.fullName.includes("Ibrahim")),
+    found.body.staff.map((p) => p.fullName).join(", "));
+
+  const one = await call(`/api/portal/staff?id=${d.staff[0].id}`, { cookie: admin.cookie });
+  check("one member of staff loads", one.status === 200 && one.body.staff?.id === d.staff[0].id);
+  check("with the classes they take", Array.isArray(one.body.classes));
+  check("and the accounts linked to them", Array.isArray(one.body.accounts));
+
+  const post = await call("/api/portal/staff", { method: "POST", cookie: admin.cookie });
+  check("POST is rejected", post.status === 405, String(post.status));
+}
+
 /* ------------------------------------------------- one dashboard per person */
 console.log("\neach role stays on its own dashboard");
 {
@@ -223,6 +316,10 @@ console.log("\neach role stays on its own dashboard");
     ["a pupil cannot open the parent view",     "/api/portal/parent",  pupil,   "portal.html"],
     ["a pupil cannot open the teacher view",    "/api/portal/teacher", pupil,   "portal.html"],
     ["a pupil cannot open the admin view",      "/api/portal/admin",   pupil,   "portal.html"],
+    ["a pupil cannot read the roll",            "/api/portal/pupils",  pupil,   "portal.html"],
+    ["a pupil cannot read the staff list",      "/api/portal/staff",   pupil,   "portal.html"],
+    ["a parent cannot read the roll",           "/api/portal/pupils",  parent,  "parent.html"],
+    ["a teacher who is not an admin cannot either", "/api/portal/staff", teacher, "teacher.html"],
     ["an administrator is not a parent",        "/api/portal/parent",  admin,   "teacher.html"],
   ];
   for (const [name, path, who, home] of cases) {
@@ -231,7 +328,8 @@ console.log("\neach role stays on its own dashboard");
     check(`${name}: pointed at their own dashboard`, r.body.home === home, r.body.home);
   }
 
-  for (const path of ["/api/portal/parent", "/api/portal/teacher", "/api/portal/admin"]) {
+  for (const path of ["/api/portal/parent", "/api/portal/teacher", "/api/portal/admin",
+                      "/api/portal/pupils", "/api/portal/staff"]) {
     const r = await call(path);
     check(`${path} needs a sign-in`, r.status === 401, String(r.status));
   }
@@ -240,7 +338,8 @@ console.log("\neach role stays on its own dashboard");
 /* -------------------------------------------------------------------- demo */
 console.log("\ndemo preview, with no sign-in");
 {
-  for (const [section, key] of [["parent", "child"], ["teacher", "classes"], ["admin", "totals"]]) {
+  for (const [section, key] of [["parent", "child"], ["teacher", "classes"], ["admin", "totals"],
+                               ["pupils", "classes"], ["staff", "totals"]]) {
     const r = await call(`/api/portal/demo?section=${section}`);
     check(`${section} preview loads`, r.status === 200, String(r.status));
     check(`${section} preview is labelled a demo`, r.body.demo === true);
