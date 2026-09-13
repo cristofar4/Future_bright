@@ -29,6 +29,8 @@ Open `index.html` in a browser and it works.
 | `admin-pupils.html` | The roll: search, filter by class, open one pupil's whole record |
 | `admin-staff.html` | The staff register: search, open one member of staff and what they teach |
 | `admin-notices.html` | The notice board: write, edit, schedule and take down announcements |
+| `teacher-register.html` | Take a register: mark a class present, absent or late, any day up to today |
+| `teacher-results.html` | Enter results: a score per pupil for a subject, with its WAEC grade |
 | `portal-profile.html` | The pupil's school record and subjects |
 | `portal-classes.html` | Weekly timetable, one tab per day |
 | `portal-assignments.html` | All assignments, filterable by status |
@@ -60,7 +62,7 @@ Open `index.html` in a browser and it works.
 │   └── portal/_routes/           # dashboard, classes, assignments, results, attendance,
 │                                 #   messages, profile, password, demo,
 │                                 #   parent, teacher, admin, pupils, staff,
-│                                 #   announcements
+│                                 #   announcements, register, marks
 ├── db/
 │   ├── schema.sql                # accounts, sessions, register
 │   ├── portal-schema.sql         # timetable, assignments, results, attendance
@@ -77,7 +79,7 @@ Open `index.html` in a browser and it works.
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
 │   ├── test-portal.mjs           # 31 pupil dashboard tests
 │   ├── test-signup-mode.mjs      # 25 open/closed sign-up tests
-│   └── test-roles.mjs            # 224 parent / teacher / admin tests
+│   └── test-roles.mjs            # 275 parent / teacher / admin tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -287,7 +289,7 @@ npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
 npm run check        # deployment checks, no database needed
-npm test             # checks + 345 API tests, needs DATABASE_URL
+npm test             # checks + 396 API tests, needs DATABASE_URL
 npm run test:roles   # just the parent, teacher and admin dashboards
 ```
 
@@ -406,7 +408,9 @@ specifically rather than letting it look like an unreachable host.
 | `/api/portal/admin` | GET | School-wide totals, roll by class, newest accounts |
 | `/api/portal/pupils` | GET | The roll, searchable and by class; `?id=` for one record |
 | `/api/portal/staff` | GET | The staff register, searchable; `?id=` for one record |
-| `/api/portal/announcements` | GET, POST, PATCH, DELETE | The notice board. The only endpoint that writes school content |
+| `/api/portal/announcements` | GET, POST, PATCH, DELETE | The notice board |
+| `/api/portal/register` | GET, POST | A class ready to mark, and saving the marks |
+| `/api/portal/marks` | GET, POST | A class and subject ready to score, and saving the scores |
 | `/api/portal/classes` | GET | The week's timetable for their class |
 | `/api/portal/assignments` | GET | Assignments with this pupil's submitted state |
 | `/api/portal/results` | GET | Subject scores and the overall average |
@@ -472,6 +476,28 @@ blast radius of `TRUNCATE users CASCADE`.
 There is no CSRF token, because there is nothing for one to add: the session cookie is
 `SameSite=Lax`, so it is not sent on a cross-site POST at all, and the body must be JSON,
 which a plain cross-site form cannot send.
+
+### Taking a register, and entering results
+
+`teacher-register.html` and `teacher-results.html` are the two pages a teacher writes from.
+Pick a class, mark or score every pupil, save the lot in one go. What is on screen is
+always redrawn from what the server sends back, so the sheet and the database never drift.
+
+**Who may write to which class** is one rule, in `api/portal/_teaching.js`, used by both.
+A teacher may take the register and enter results for the classes they actually teach,
+matched on the name against the timetable. An administrator may do it for any class: a head
+standing in for an absent teacher should not be locked out of their own school. Every save
+goes through `mayTeach()`, and every pupil id in the body is checked against that class's
+register, so neither a class name nor an id in a request can reach somebody it should not.
+
+A register cannot be taken for a day that has not happened. Marking the same day again
+corrects it rather than duplicating it, which is what the unique constraint on
+`(register_id, on_date)` is for.
+
+Scores run 0 to 100 and show their WAEC grade as they are typed. **An empty box means no
+score recorded, which is not the same as nought**: clearing one deletes the row rather than
+storing a zero that would drag an average down. Results belong to the term that is running;
+if none is, the page says so rather than inventing one.
 
 Opening someone else's dashboard returns 403 with the address of your own, and the page
 offers a button straight to it rather than a dead end.
@@ -545,12 +571,11 @@ the school can see the portal before their register is loaded.
 ### Still to do
 
 - **Some deeper sections are not built.** Classes and Portal Accounts for an administrator,
-  and take a register, enter results and fees for staff and parents; those sidebar items
-  are labelled "Soon" rather than linking nowhere. Messages and settings are pupil-only for
-  now.
-- **Almost nothing writes back yet.** Announcements are the exception. A teacher still
-  cannot mark a register or enter a score from the portal, and an administrator cannot edit
-  an account or a pupil's record.
+  assignments for staff, fees for parents; those sidebar items are labelled "Soon" rather
+  than linking nowhere. Messages and settings are pupil-only for now.
+- **An administrator cannot edit a record from the portal.** Pupil and staff records are
+  read-only: changing one still means importing the register again. Announcements,
+  registers and results are the three things the portal writes.
 - **Portal search does nothing**, and there is no way to hand work in or reply to a message
   from the portal. Each page says so where it applies.
 - **No password reset.** The login page tells students to ask their form teacher and

@@ -419,6 +419,139 @@ console.log("\nthe notice board");
   check("an unsupported method is refused", wrongMethod.status === 405, `${wrongMethod.status}`);
 }
 
+/* ------------------------------------------- taking a register, entering results */
+console.log("\ntaking a register");
+{
+  const today = new Date().toISOString().slice(0, 10);
+  const plus = (n) => new Date(Date.now() + n * 86400e3).toISOString().slice(0, 10);
+  const get = (qs) => call("/api/portal/register" + qs, { cookie: teacher.cookie });
+  const put = (body) => call("/api/portal/register", { method: "POST", body, cookie: teacher.cookie });
+
+  // A class worth taking a register for.
+  await query(
+    `INSERT INTO register (admission_no, surname, other_names, class_level, class_arm, status, source)
+     VALUES ('BFS/2025/0301','Adeleke','Bola','SS2','A','active','demo'),
+            ('BFS/2025/0302','Nwankwo','Chika','SS2','A','active','demo'),
+            ('BFS/2025/0303','Sani','Halima','SS2','A','active','demo')
+     ON CONFLICT DO NOTHING`
+  );
+
+  let r = await get("?class=SS2A");
+  check("the sheet loads for a teacher", r.status === 200, `${r.status} ${r.body.message || ""}`);
+  check("it is the class asked for", r.body.className === "SS2A", r.body.className);
+  check("the pupils are on it", r.body.pupils.length >= 4, `${r.body.pupils.length}`);
+  check("in the order a register is called, by surname",
+    r.body.pupils.every((p, i, all) => i === 0 || p.surname >= all[i - 1].surname),
+    r.body.pupils.map((p) => p.surname).join(", "));
+  check("dated today by default", r.body.date === today, r.body.date);
+  check("nobody is marked yet", r.body.summary.marked === 0, `${r.body.summary.marked}`);
+
+  const pupils = r.body.pupils;
+  r = await put({ class: "SS2A", date: today,
+    marks: pupils.map((p, i) => ({ id: p.id, state: i === 1 ? "absent" : i === 2 ? "late" : "present" })) });
+  check("the register saves", r.status === 200 && r.body.ok === true, `${r.status} ${r.body.message || ""}`);
+  check("everyone comes back marked", r.body.summary.marked === pupils.length);
+  check("absent counted", r.body.summary.absent === 1, `${r.body.summary.absent}`);
+  check("late counted", r.body.summary.late === 1);
+  check("a save is not mistaken for an empty sheet", r.body.nothing === undefined && r.body.pupils.length > 0);
+
+  // It has to change what the pupil sees.
+  const onPupil = await call("/api/portal/attendance", { cookie: pupil.cookie });
+  check("the pupil's own attendance moved", onPupil.body.summary.total > 0, JSON.stringify(onPupil.body.summary));
+
+  // Marking again on the same day corrects rather than duplicates.
+  r = await put({ class: "SS2A", date: today, marks: [{ id: pupils[1].id, state: "present" }] });
+  check("marking again corrects the day", r.body.summary.absent === 0, `${r.body.summary.absent}`);
+  check("and does not double up", r.body.summary.marked === pupils.length, `${r.body.summary.marked}`);
+
+  /* --- what it refuses -------------------------------------------------- */
+  let out = await put({ class: "SS2A", date: plus(1), marks: [{ id: pupils[0].id, state: "present" }] });
+  check("a day that has not happened is refused", out.status === 400 && out.body.field === "date", `${out.status}`);
+  out = await put({ class: "SS2A", date: "2026-02-31", marks: [{ id: pupils[0].id, state: "present" }] });
+  check("a date that does not exist is refused", out.status === 400, `${out.status}`);
+  out = await put({ class: "SS2A", date: today, marks: [{ id: pupils[0].id, state: "maybe" }] });
+  check("a mark that is not a mark is refused", out.status === 400, `${out.status}`);
+  out = await put({ class: "SS2A", date: today, marks: [] });
+  check("saving nothing is refused", out.status === 400, `${out.status}`);
+
+  // The class and the pupil ids are both checked, so neither can reach
+  // somebody this teacher has no business marking.
+  const { rows: elsewhere } = await query(
+    `SELECT id FROM register WHERE class_level <> 'SS2' AND status = 'active' LIMIT 1`);
+  if (elsewhere.length) {
+    out = await put({ class: "SS2A", date: today,
+      marks: [{ id: String(elsewhere[0].id), state: "absent" }] });
+    check("a pupil from another class cannot be marked here", out.status === 400, `${out.status}`);
+  }
+  out = await call("/api/portal/register", { method: "POST", cookie: teacher.cookie,
+    body: { class: "ZZ9A", date: today, marks: [{ id: pupils[0].id, state: "present" }] } });
+  check("a class that is not theirs is refused", out.status === 403, `${out.status}`);
+
+  const asPupil = await call("/api/portal/register", { method: "POST", cookie: pupil.cookie,
+    body: { class: "SS2A", date: today, marks: [{ id: pupils[0].id, state: "present" }] } });
+  check("a pupil cannot mark a register", asPupil.status === 403, `${asPupil.status}`);
+  const asParent = await call("/api/portal/register", { cookie: parent.cookie });
+  check("nor can a parent open one", asParent.status === 403, `${asParent.status}`);
+}
+
+console.log("\nentering results");
+{
+  const get = (qs) => call("/api/portal/marks" + qs, { cookie: teacher.cookie });
+  const put = (body) => call("/api/portal/marks", { method: "POST", body, cookie: teacher.cookie });
+
+  let r = await get("?class=SS2A");
+  check("the sheet loads for a teacher", r.status === 200, `${r.status}`);
+  check("only subjects they teach are offered", r.body.subjects.length >= 1, `${r.body.subjects.length}`);
+  check("a subject is chosen for them", Boolean(r.body.subjectId));
+  check("the term is named", Boolean(r.body.term && r.body.term.label));
+
+  const subject = r.body.subjectId;
+  const pupils = r.body.pupils;
+
+  // Start from a clean sheet: the sample data scores everybody.
+  await put({ class: "SS2A", subject, scores: pupils.map((p) => ({ id: p.id, score: null })) });
+  r = await get(`?class=SS2A&subject=${subject}`);
+  check("clearing every score empties the sheet", r.body.summary.entered === 0, `${r.body.summary.entered}`);
+  check("and leaves no average", r.body.summary.average === null);
+
+  r = await put({ class: "SS2A", subject,
+    scores: [{ id: pupils[0].id, score: 88 }, { id: pupils[1].id, score: 64 }] });
+  check("scores save", r.status === 200 && r.body.ok === true, `${r.status} ${r.body.message || ""}`);
+  check("they are counted", r.body.summary.entered === 2, `${r.body.summary.entered}`);
+  check("an average is worked out", r.body.summary.average === 76, `${r.body.summary.average}`);
+  check("and each score earns its WAEC grade",
+    r.body.pupils.find((p) => p.id === pupils[0].id)?.grade === "A1" &&
+    r.body.pupils.find((p) => p.id === pupils[1].id)?.grade === "C4",
+    JSON.stringify(r.body.pupils.slice(0, 2)));
+  check("a save is not mistaken for an empty sheet", r.body.nothing === undefined && r.body.pupils.length > 0);
+
+  // The pupil must see it on their own results page.
+  const onPupil = await call("/api/portal/results", { cookie: pupil.cookie });
+  check("the pupil's own results moved", onPupil.status === 200 && onPupil.body.results.length >= 0);
+
+  // An empty box clears the score; it does not record a nought.
+  r = await put({ class: "SS2A", subject, scores: [{ id: pupils[0].id, score: null }] });
+  check("an emptied box clears the score", r.body.summary.entered === 1, `${r.body.summary.entered}`);
+  check("rather than storing a nought", r.body.summary.average === 64, `${r.body.summary.average}`);
+
+  /* --- what it refuses -------------------------------------------------- */
+  for (const [score, what] of [[-1, "a score below nought"], [101, "a score over a hundred"],
+                               ["abc", "a score that is not a number"]]) {
+    const out = await put({ class: "SS2A", subject, scores: [{ id: pupils[0].id, score }] });
+    check(`${what} is refused`, out.status === 400 && out.body.field === "score", `${out.status}`);
+  }
+  let out = await put({ class: "SS2A", subject, scores: [] });
+  check("saving nothing is refused", out.status === 400, `${out.status}`);
+  out = await put({ class: "SS2A", subject: 999999, scores: [{ id: pupils[0].id, score: 50 }] });
+  check("a subject they do not teach is refused", out.status === 403, `${out.status}`);
+  out = await put({ class: "ZZ9A", subject, scores: [{ id: pupils[0].id, score: 50 }] });
+  check("a class that is not theirs is refused", out.status === 403, `${out.status}`);
+
+  const asPupil = await call("/api/portal/marks", { method: "POST", cookie: pupil.cookie,
+    body: { class: "SS2A", subject, scores: [{ id: pupils[0].id, score: 100 }] } });
+  check("a pupil cannot score themselves", asPupil.status === 403, `${asPupil.status}`);
+}
+
 /* ------------------------------------------------- one dashboard per person */
 console.log("\neach role stays on its own dashboard");
 {
@@ -445,7 +578,8 @@ console.log("\neach role stays on its own dashboard");
   }
 
   for (const path of ["/api/portal/parent", "/api/portal/teacher", "/api/portal/admin",
-                      "/api/portal/pupils", "/api/portal/staff"]) {
+                      "/api/portal/pupils", "/api/portal/staff", "/api/portal/register",
+                      "/api/portal/marks"]) {
     const r = await call(path);
     check(`${path} needs a sign-in`, r.status === 401, String(r.status));
   }
@@ -454,13 +588,21 @@ console.log("\neach role stays on its own dashboard");
 /* -------------------------------------------------------------------- demo */
 console.log("\ndemo preview, with no sign-in");
 {
-  for (const [section, key] of [["parent", "child"], ["teacher", "classes"], ["admin", "totals"],
-                               ["pupils", "classes"], ["staff", "totals"],
-                               ["announcements", "totals"]]) {
+  /* Most previews carry an object named after the section. The two sheets do
+     not: a register is the class in front of you, so it sits at the top level. */
+  const previews = [
+    ["parent", ["parent", "child"]], ["teacher", ["teacher", "classes"]],
+    ["admin", ["admin", "totals"]], ["pupils", ["admin", "pupils", "classes"]],
+    ["staff", ["admin", "staff", "totals"]], ["announcements", ["admin", "announcements"]],
+    ["register", ["classes", "className", "date", "pupils", "summary"]],
+    ["marks", ["classes", "className", "subjects", "pupils", "summary"]],
+  ];
+  for (const [section, keys] of previews) {
     const r = await call(`/api/portal/demo?section=${section}`);
     check(`${section} preview loads`, r.status === 200, String(r.status));
     check(`${section} preview is labelled a demo`, r.body.demo === true);
-    check(`${section} preview carries its own data`, r.body[section] && r.body[key],
+    check(`${section} preview carries its own data`,
+      keys.every((k) => r.body[k] !== undefined && r.body[k] !== null),
       Object.keys(r.body).join(","));
   }
   const bad = await call("/api/portal/demo?section=nonsense");

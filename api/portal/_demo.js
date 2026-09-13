@@ -129,6 +129,12 @@ const DEMO_STAFF = [
   staffRow(6, "BFS/STF/026", "Tayo",   "Adeyemi", "t.adeyemi@brightfuture.edu.ng", 30, "Physics", 1),
 ];
 
+const DEMO_CLASSES = [
+  { class_name: "SS2A", class_level: "SS2", class_arm: "A", pupils: 24 },
+  { class_name: "SS1A", class_level: "SS1", class_arm: "A", pupils: 26 },
+  { class_name: "JSS3A", class_level: "JSS3", class_arm: "A", pupils: 22 },
+];
+
 /** The same shape every real endpoint returns, so the page needs no special case. */
 export function demoPayload(section) {
   const weekday = Math.min(Math.max(new Date().getDay(), 1), 5);
@@ -296,6 +302,60 @@ export function demoPayload(section) {
         totals: { total: 5, scheduled: 1, everyone: 2 },
         audiences: ["all", "students", "parents", "staff"],
         limits: { title: 120, body: 4000 },
+      };
+    }
+
+    case "register": {
+      const TEACHER = { isAdmin: false, fullName: "Mr. Emeka Okafor", firstName: "Emeka",
+                        initials: "EO", email: "e.okafor@brightfuture.edu.ng", role: "teacher" };
+      const here = DEMO_ROLL.slice(0, 6).map((p, i) => ({
+        id: p.id, admissionNo: p.admissionNo, fullName: p.fullName, initials: p.initials,
+        state: i === 2 ? "absent" : i === 4 ? "late" : i === 5 ? null : "present",
+      }));
+      const marked = here.filter((p) => p.state);
+      return {
+        ...base,
+        admin: TEACHER,
+        classes: DEMO_CLASSES,
+        className: "SS2A",
+        date: new Date().toISOString().slice(0, 10),
+        today: new Date().toISOString().slice(0, 10),
+        pupils: here,
+        all: false,
+        summary: {
+          marked: marked.length, total: here.length,
+          present: marked.filter((p) => p.state === "present").length,
+          absent: marked.filter((p) => p.state === "absent").length,
+          late: marked.filter((p) => p.state === "late").length,
+        },
+      };
+    }
+
+    case "marks": {
+      const TEACHER = { isAdmin: false, fullName: "Mr. Emeka Okafor", firstName: "Emeka",
+                        initials: "EO", email: "e.okafor@brightfuture.edu.ng", role: "teacher" };
+      const wa = (n) => n >= 75 ? "A1" : n >= 70 ? "B2" : n >= 65 ? "B3" : n >= 60 ? "C4"
+                      : n >= 55 ? "C5" : n >= 50 ? "C6" : n >= 45 ? "D7" : n >= 40 ? "E8" : "F9";
+      const scores = [88, 72, null, 64, 91, 47];
+      const here = DEMO_ROLL.slice(0, 6).map((p, i) => ({
+        id: p.id, admissionNo: p.admissionNo, fullName: p.fullName, initials: p.initials,
+        score: scores[i], grade: scores[i] === null ? null : wa(scores[i]),
+      }));
+      const done = here.filter((p) => p.score !== null);
+      return {
+        ...base,
+        admin: TEACHER,
+        classes: DEMO_CLASSES,
+        className: "SS2A",
+        subjects: [{ id: 1, name: "Mathematics" }, { id: 5, name: "Physics" }],
+        subjectId: "1",
+        subjectName: "Mathematics",
+        pupils: here,
+        all: false,
+        summary: {
+          entered: done.length, total: here.length,
+          average: Math.round(done.reduce((n, p) => n + p.score, 0) / done.length),
+        },
       };
     }
 

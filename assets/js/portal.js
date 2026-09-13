@@ -135,7 +135,8 @@
   /* Which object in the payload describes the person signed in. A parent page
      is headed by the parent, not by the child it is about. */
   var IDENTITY = { parent: "parent", teacher: "teacher", admin: "admin",
-                   pupils: "admin", staff: "admin", notices: "admin" };
+                   pupils: "admin", staff: "admin", notices: "admin",
+                   register: "admin", marks: "admin" };
 
   function applyIdentity(data) {
     var key = IDENTITY[PAGE] || "student";
@@ -626,6 +627,272 @@
     });
   }
 
+  /* --- taking a register, and entering results --------------------------- */
+
+  /* Both sheets work the same way: pick a class, mark or score every pupil,
+     save the lot in one go. What is on screen is always redrawn from what the
+     server sends back, so the sheet and the database never drift apart. */
+  var SHEET = { data: null, dirty: false };
+
+  function sheetEl(name) { return document.querySelector("[data-" + name + "]"); }
+
+  function sheetAlert(message, tone) {
+    var box = sheetEl("alert");
+    box.className = "auth-alert auth-alert--" + (tone || "error") + " is-shown";
+    var mark = box.querySelector("svg");
+    if (mark) {
+      mark.innerHTML = tone === "ok"
+        ? '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+        : '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4h.01"/>';
+    }
+    box.querySelector("[data-alert-text]").textContent = message;
+  }
+
+  function fillSelect(node, items, chosen) {
+    clear(node);
+    items.forEach(function (item) {
+      var opt = el("option", null, item.label);
+      opt.value = item.value;
+      if (String(item.value) === String(chosen)) { opt.selected = true; }
+      node.appendChild(opt);
+    });
+  }
+
+  /* Nothing to mark or score is a state the page has to say out loud, rather
+     than showing an empty card and leaving someone to guess why. This reads
+     `nothing`, never `message`: the latter is how the last save went, and
+     treating the two as one hid the whole sheet the moment a save succeeded. */
+  function sheetHasNothing(d) {
+    var nothing = sheetEl("nothing");
+    var sheet = sheetEl("sheet");
+    var blocked = Boolean(d.nothing) || !d.pupils.length;
+    nothing.classList.toggle("is-hidden", !blocked);
+    sheet.hidden = blocked;
+    if (blocked) {
+      nothing.querySelector("[data-nothing-text]").textContent =
+        d.nothing || "Nobody is on the register for this class yet.";
+    }
+    return blocked;
+  }
+
+  function markSheetDirty(on) {
+    SHEET.dirty = on;
+    setAll("[data-note]", on ? "Not saved yet." : "");
+  }
+
+  var STATE_LABEL = { present: "Present", absent: "Absent", late: "Late" };
+
+  function renderRegisterRows(d) {
+    var host = sheetEl("rows");
+    clear(host);
+    d.pupils.forEach(function (p) {
+      var row = el("div", "mark-row" + (p.state ? "" : " is-unmarked"));
+      row.setAttribute("data-pupil", p.id);
+
+      var avatar = el("span", "avatar avatar--sm", p.initials);
+      avatar.setAttribute("aria-hidden", "true");
+      row.appendChild(avatar);
+
+      var who = el("span", "mark-row__who");
+      who.appendChild(el("strong", null, p.fullName));
+      who.appendChild(el("span", null, p.admissionNo));
+      row.appendChild(who);
+
+      var marks = el("span", "marks");
+      marks.setAttribute("role", "group");
+      marks.setAttribute("aria-label", "Mark " + p.fullName);
+      ["present", "absent", "late"].forEach(function (state) {
+        var id = "m-" + p.id + "-" + state;
+        var input = document.createElement("input");
+        input.type = "radio";
+        input.name = "pupil-" + p.id;
+        input.id = id;
+        input.value = state;
+        input.checked = p.state === state;
+        input.addEventListener("change", function () {
+          row.classList.remove("is-unmarked");
+          markSheetDirty(true);
+        });
+        var label = el("label", null, STATE_LABEL[state]);
+        label.setAttribute("for", id);
+        marks.appendChild(input);
+        marks.appendChild(label);
+      });
+      row.appendChild(marks);
+      host.appendChild(row);
+    });
+  }
+
+  function gradeTone(code) {
+    if (/^[AB]/.test(code)) { return "pass"; }
+    if (/^C/.test(code)) { return "mid"; }
+    return "low";
+  }
+
+  function renderScoreRows(d) {
+    var host = sheetEl("rows");
+    clear(host);
+    d.pupils.forEach(function (p) {
+      var row = el("div", "mark-row");
+      row.setAttribute("data-pupil", p.id);
+
+      var avatar = el("span", "avatar avatar--sm", p.initials);
+      avatar.setAttribute("aria-hidden", "true");
+      row.appendChild(avatar);
+
+      var who = el("span", "mark-row__who");
+      who.appendChild(el("strong", null, p.fullName));
+      who.appendChild(el("span", null, p.admissionNo));
+      row.appendChild(who);
+
+      var box = el("span", "score-box");
+      var input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.max = "100";
+      input.step = "1";
+      input.inputMode = "numeric";
+      input.placeholder = "\u2013";
+      input.value = p.score === null ? "" : String(p.score);
+      input.setAttribute("aria-label", "Score for " + p.fullName);
+      var pill = el("span", "grade-pill" + (p.grade ? " grade-pill--" + gradeTone(p.grade) : ""),
+        p.grade || "\u2013");
+
+      input.addEventListener("input", function () {
+        var v = input.value.trim();
+        var n = Number(v);
+        var bad = v !== "" && (!Number.isFinite(n) || n < 0 || n > 100);
+        input.classList.toggle("is-bad", bad);
+        // The grade follows the box as it is typed, so a mistake shows itself.
+        pill.textContent = bad || v === "" ? "\u2013" : grade(n).code;
+        pill.className = "grade-pill" + (bad || v === "" ? "" : " grade-pill--" + gradeTone(grade(n).code));
+        markSheetDirty(true);
+      });
+
+      box.appendChild(input);
+      box.appendChild(pill);
+      row.appendChild(box);
+      host.appendChild(row);
+    });
+  }
+
+  async function saveSheet(url, payload) {
+    var button = sheetEl("save");
+    button.setAttribute("aria-busy", "true");
+    sheetEl("alert").classList.remove("is-shown");
+    try {
+      var res = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (res.status === 401) { window.location.replace("login.html"); return; }
+      if (!res.ok) { sheetAlert(data.message || "That did not save. Please try again.", "error"); return; }
+
+      applyIdentity(data);
+      // The renderer clears the dirty flag itself and then says what is left to
+      // do; clearing it again here wiped that note off the screen.
+      RENDER[PAGE](data);
+      sheetAlert(data.message || "Saved.", "ok");
+    } catch (err) {
+      sheetAlert("We could not reach the server. Please try again.", "error");
+    } finally {
+      button.setAttribute("aria-busy", "false");
+    }
+  }
+
+  /** Changing the class or the day reloads the sheet through the address bar. */
+  function initSheetBar(fields) {
+    var bar = document.querySelector("[data-sheet-bar]");
+    if (!bar) { return; }
+    bar.addEventListener("submit", function (e) { e.preventDefault(); });
+    fields.forEach(function (name) {
+      var node = bar.querySelector("[data-" + name + "]");
+      if (!node) { return; }
+      node.addEventListener("change", function () {
+        if (SHEET.dirty && !window.confirm("You have marks that are not saved. Leave them?")) {
+          return;
+        }
+        var url = new URL(window.location.href);
+        url.searchParams.set(name, node.value);
+        if (name === "class") { url.searchParams.delete("subject"); }
+        window.location.href = url.toString();
+      });
+    });
+  }
+
+  function initSheetButtons() {
+    var save = sheetEl("save");
+    if (!save) { return; }
+
+    save.addEventListener("click", function () {
+      if (DEMO) {
+        sheetAlert("This is a preview, so nothing is saved. Sign in to use it for real.", "error");
+        return;
+      }
+      if (PAGE === "register") { saveRegister(); } else { saveScores(); }
+    });
+
+    var all = document.querySelector('[data-all="present"]');
+    if (all) {
+      all.addEventListener("click", function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.marks input[value="present"]'),
+          function (i) { i.checked = true; });
+        Array.prototype.forEach.call(document.querySelectorAll(".mark-row"),
+          function (r) { r.classList.remove("is-unmarked"); });
+        markSheetDirty(true);
+      });
+    }
+    var clearAll = document.querySelector("[data-clear]");
+    if (clearAll) {
+      clearAll.addEventListener("click", function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".marks input"),
+          function (i) { i.checked = false; });
+        Array.prototype.forEach.call(document.querySelectorAll(".mark-row"),
+          function (r) { r.classList.add("is-unmarked"); });
+        markSheetDirty(true);
+      });
+    }
+
+    // Leaving with marks in the boxes and nothing saved is worth a word.
+    window.addEventListener("beforeunload", function (e) {
+      if (SHEET.dirty) { e.preventDefault(); e.returnValue = ""; }
+    });
+  }
+
+  function saveRegister() {
+    var marks = [];
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pupil]"), function (row) {
+      var picked = row.querySelector(".marks input:checked");
+      if (picked) { marks.push({ id: row.getAttribute("data-pupil"), state: picked.value }); }
+    });
+    if (!marks.length) { sheetAlert("Mark at least one pupil before saving.", "error"); return; }
+    saveSheet("/api/portal/register", {
+      class: SHEET.data.className,
+      date: SHEET.data.date,
+      marks: marks,
+    });
+  }
+
+  function saveScores() {
+    var scores = [];
+    var bad = false;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pupil]"), function (row) {
+      var input = row.querySelector(".score-box input");
+      var v = input.value.trim();
+      if (v !== "" && input.classList.contains("is-bad")) { bad = true; }
+      scores.push({ id: row.getAttribute("data-pupil"), score: v === "" ? null : Number(v) });
+    });
+    if (bad) { sheetAlert("Some scores are outside 0 to 100. Fix those first.", "error"); return; }
+    saveSheet("/api/portal/marks", {
+      class: SHEET.data.className,
+      subject: SHEET.data.subjectId,
+      scores: scores,
+    });
+  }
+
   function setKpi(key, value) {
     setAll('[data-kpi="' + key + '"]', value);
   }
@@ -1102,6 +1369,62 @@
       document.title = "Staff | Bright Future Secondary School";
     },
 
+    /* --- taking a register ------------------------------------------------ */
+    register: function (d) {
+      SHEET.data = d;
+      fillSelect(document.querySelector("[data-class]"),
+        (d.classes || []).map(function (c) {
+          return { value: c.class_name, label: c.class_name + "  \u00b7  " + plural(c.pupils, "pupil") };
+        }), d.className);
+
+      var date = document.querySelector("[data-date]");
+      date.value = d.date;
+      date.max = d.today;                      // no register for a day still to come
+
+      var s = d.summary || {};
+      setKpi("marked", (s.marked || 0) + " / " + (s.total || 0));
+      setKpi("present", s.present || 0);
+      setKpi("absent", s.absent || 0);
+      setKpi("late", s.late || 0);
+      setAll("[data-sheet-title]", d.className ? d.className + " on " + longDate(d.date) : "The Register");
+
+      if (sheetHasNothing(d)) { return; }
+      renderRegisterRows(d);
+      markSheetDirty(false);
+      if (s.marked === s.total && s.total) {
+        setAll("[data-note]", "Everyone is marked.");
+      } else if (s.marked) {
+        setAll("[data-note]", (s.total - s.marked) + " still to mark.");
+      }
+      document.title = "Take Register | Bright Future Secondary School";
+    },
+
+    /* --- entering results ------------------------------------------------- */
+    marks: function (d) {
+      SHEET.data = d;
+      fillSelect(document.querySelector("[data-class]"),
+        (d.classes || []).map(function (c) {
+          return { value: c.class_name, label: c.class_name + "  \u00b7  " + plural(c.pupils, "pupil") };
+        }), d.className);
+      fillSelect(document.querySelector("[data-subject]"),
+        (d.subjects || []).map(function (x) { return { value: String(x.id), label: x.name }; }),
+        d.subjectId);
+
+      var s = d.summary || {};
+      setKpi("entered", (s.entered || 0) + " / " + (s.total || 0));
+      setKpi("total", s.total || 0);
+      setKpi("average", s.average === null || s.average === undefined ? "-" : s.average + "%");
+      setKpi("term", d.term ? d.term.label : "-");
+      setAll("[data-sheet-title]",
+        d.subjectName && d.className ? d.subjectName + " for " + d.className : "Results");
+
+      if (sheetHasNothing(d)) { return; }
+      renderScoreRows(d);
+      markSheetDirty(false);
+      if (s.entered < s.total) { setAll("[data-note]", (s.total - s.entered) + " still to score."); }
+      document.title = "Enter Results | Bright Future Secondary School";
+    },
+
     /* --- the notice board ------------------------------------------------ */
     notices: function (d) {
       var t = d.totals || {};
@@ -1198,11 +1521,12 @@
     profile: "profile", calendar: "dashboard", resources: "profile", settings: "profile",
     parent: "parent", teacher: "teacher", admin: "admin",
     pupils: "pupils", staff: "staff", notices: "announcements",
+    register: "register", marks: "marks",
   };
 
   // Search, class, status and page live in the page's own address, so a result
   // can be linked to and the back button does what it looks like it does.
-  var FORWARD = ["id", "q", "class", "status", "page"];
+  var FORWARD = ["id", "q", "class", "status", "page", "date", "subject"];
 
   function apiUrl(section) {
     if (DEMO) {
@@ -1413,6 +1737,8 @@
     initChrome();
     initPasswordForm();
     initNoticeForm();
+    if (PAGE === "register") { initSheetBar(["class", "date"]); initSheetButtons(); }
+    if (PAGE === "marks") { initSheetBar(["class", "subject"]); initSheetButtons(); }
 
     try {
       var res = await fetch(apiUrl(ENDPOINT[PAGE] || "dashboard"), { credentials: "same-origin" });

@@ -693,3 +693,72 @@ body[data-page="portal"] { background: var(--portal-bg); }
   .notice-admin { flex-wrap: wrap; }
   .notice-admin__acts { width: 100%; }
 }
+
+/* ==========================================================================
+   Taking a register, and entering results
+   ========================================================================== */
+.sheet-bar { display: flex; align-items: flex-end; gap: .9rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+.sheet-bar .field { margin: 0; min-width: 13.5rem; }   /* "SS2A - 24 pupils" fits */
+.sheet-bar .field label { font-size: .82rem; margin-bottom: .3rem; }
+.sheet-bar__spacer { flex: 1; }
+
+/* One pupil, one row. */
+.mark-row { display: flex; align-items: center; gap: .85rem; padding: .7rem .35rem; }
+.mark-row + .mark-row { border-top: 1px solid var(--line); }
+.mark-row__who { flex: 1; min-width: 0; }
+.mark-row__who strong {
+  display: block; font-family: var(--font-head); font-size: .9rem; color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.mark-row__who span { display: block; font-size: .78rem; color: var(--muted); }
+.mark-row.is-unmarked { background: #fffaf0; border-radius: 8px; }
+
+/* Present / absent / late, as one control. */
+.marks { display: flex; gap: .3rem; flex: none; }
+.marks input { position: absolute; opacity: 0; width: 0; height: 0; }
+.marks label {
+  display: grid; place-items: center; min-width: 4.6rem; padding: .4rem .7rem;
+  border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+  font-family: var(--font-head); font-weight: 700; font-size: .78rem; color: var(--muted);
+  background: #fff; user-select: none;
+}
+.marks label:hover { border-color: var(--blue-500); color: var(--blue-700); }
+.marks input:focus-visible + label { outline: 3px solid var(--blue-500); outline-offset: 2px; }
+.marks input:checked + label { color: #fff; border-color: transparent; }
+.marks input[value="present"]:checked + label { background: var(--green); }
+.marks input[value="absent"]:checked  + label { background: var(--pink); }
+.marks input[value="late"]:checked    + label { background: var(--orange); }
+
+/* A score box and the grade it earns. */
+.score-box { display: flex; align-items: center; gap: .5rem; flex: none; }
+.score-box input {
+  width: 5.2rem; text-align: center; font-family: var(--font-head); font-weight: 700;
+  padding: .45rem .5rem; border: 1px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--ink); font-size: .92rem;
+}
+.score-box input:focus { outline: 2px solid var(--blue-500); outline-offset: 1px; border-color: transparent; }
+.score-box input.is-bad { border-color: var(--pink); background: #fdeaee; }
+.grade-pill {
+  min-width: 2.4rem; text-align: center; border-radius: 999px; padding: .26rem .5rem;
+  font-family: var(--font-head); font-weight: 800; font-size: .76rem;
+  background: var(--soft); border: 1px solid var(--line); color: var(--muted);
+}
+.grade-pill--pass { background: #e8f7ef; border-color: #c7ecd7; color: #1c7a45; }
+.grade-pill--mid  { background: var(--blue-50); border-color: var(--blue-100); color: var(--blue-700); }
+.grade-pill--low  { background: #fdeaee; border-color: #f6c3ce; color: #9b2c2c; }
+
+/* The bar that saves, and what it says about the sheet. */
+.sheet-foot {
+  display: flex; align-items: center; gap: .8rem; flex-wrap: wrap;
+  padding-top: 1rem; margin-top: .4rem; border-top: 1px solid var(--line);
+}
+.sheet-foot__note { font-size: .85rem; color: var(--muted); }
+.sheet-foot__note b { font-family: var(--font-head); color: var(--ink); }
+.quick-marks { display: flex; gap: .4rem; flex-wrap: wrap; margin-left: auto; }
+
+@media (max-width: 620px) {
+  .mark-row { flex-wrap: wrap; }
+  .marks, .score-box { width: 100%; }
+  .marks label { flex: 1; min-width: 0; }
+  .quick-marks { margin-left: 0; width: 100%; }
+}

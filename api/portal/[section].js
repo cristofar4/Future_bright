@@ -7,11 +7,13 @@ import attendance  from "./_routes/attendance.js";
 import classes     from "./_routes/classes.js";
 import dashboard   from "./_routes/dashboard.js";
 import demo        from "./_routes/demo.js";
+import marks       from "./_routes/marks.js";
 import messages    from "./_routes/messages.js";
 import password    from "./_routes/password.js";
 import profile     from "./_routes/profile.js";
 import pupils      from "./_routes/pupils.js";
 import parent      from "./_routes/parent.js";
+import register    from "./_routes/register.js";
 import results     from "./_routes/results.js";
 import staff       from "./_routes/staff.js";
 import teacher     from "./_routes/teacher.js";
@@ -19,8 +21,8 @@ import teacher     from "./_routes/teacher.js";
 import { json } from "../_lib/http.js";
 
 const ROUTES = { admin, announcements, assignments, attendance, classes,
-                 dashboard, demo, messages, parent, password, profile, pupils,
-                 results, staff, teacher };
+                 dashboard, demo, marks, messages, parent, password, profile,
+                 pupils, register, results, staff, teacher };
 
 export default async function handler(req, res) {
   const { pathname } = new URL(req.url, "http://localhost");
