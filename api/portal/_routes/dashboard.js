@@ -9,6 +9,7 @@
 import { query } from "../../_lib/db.js";
 import { json, methodNotAllowed } from "../../_lib/http.js";
 import { getSessionUser } from "../../_lib/session.js";
+import { homeFor, firstNameOf, initialsOf } from "../_student.js";
 
 function greeting(hour) {
   if (hour < 12) return "Good Morning";
@@ -27,7 +28,8 @@ export default async function handler(req, res) {
     if (session.role !== "student") {
       return json(res, 403, {
         error: "wrong_portal",
-        message: "This dashboard is for students. A parent and staff view is not built yet.",
+        message: "This dashboard is for pupils. Your own dashboard is a click away.",
+        home: homeFor(session),
       });
     }
 
@@ -126,12 +128,12 @@ export default async function handler(req, res) {
 
     return json(res, 200, {
       student: {
+        isAdmin: Boolean(session.is_admin),
         fullName: session.full_name,
-        firstName: (student.other_names || session.full_name).split(/\s+/)[0],
+        firstName: firstNameOf(student.other_names || session.full_name),
         admissionNo: student.admission_no,
         className: klass,
-        initials: session.full_name.split(/\s+/).filter(Boolean).slice(0, 2)
-          .map((p) => p[0].toUpperCase()).join(""),
+        initials: initialsOf(session.full_name),
       },
       greeting: greeting(new Date().getHours()),
       term: term && {

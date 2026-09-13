@@ -23,6 +23,9 @@ Open `index.html` in a browser and it works.
 | `login.html` | Sign in to the portal |
 | `setup.html` | Setup status: what is working, what is not, what to do next |
 | `portal.html` | Student dashboard |
+| `parent.html` | Parent dashboard: one child's day, results, attendance and homework |
+| `teacher.html` | Teacher dashboard: today's periods, classes and pupil numbers |
+| `admin.html` | Admin dashboard: the roll, the staff list, portal accounts, sign-up state |
 | `portal-profile.html` | The pupil's school record and subjects |
 | `portal-classes.html` | Weekly timetable, one tab per day |
 | `portal-assignments.html` | All assignments, filterable by status |
@@ -44,7 +47,7 @@ Open `index.html` in a browser and it works.
 │   ├── js/main.js                # nav, search, carousels, counters, forms
 │   ├── css/portal.css            # dashboard layout
 │   ├── js/auth.js                # role tabs, validation, calls the auth API
-│   ├── js/portal.js              # renders the dashboard
+│   ├── js/portal.js              # renders every dashboard, whichever role
 │   └── img/                      # photography + favicon
 ├── api/
 │   ├── _lib/                     # db, crypto, http, validation, rate limiting, sessions
@@ -52,7 +55,8 @@ Open `index.html` in a browser and it works.
 │   ├── auth/_routes/             # signup, login, logout, me, mode
 │   ├── portal/[section].js       # one function for every /api/portal/* route
 │   └── portal/_routes/           # dashboard, classes, assignments, results, attendance,
-│                                 #   messages, profile, password, demo
+│                                 #   messages, profile, password, demo,
+│                                 #   parent, teacher, admin
 ├── db/
 │   ├── schema.sql                # accounts, sessions, register
 │   ├── portal-schema.sql         # timetable, assignments, results, attendance
@@ -66,8 +70,9 @@ Open `index.html` in a browser and it works.
 │   ├── db.mjs                    # setup / demo / status, no psql needed
 │   ├── import-register.mjs       # spreadsheet CSV -> register table
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
-│   ├── test-portal.mjs           # 31 dashboard tests
-│   └── test-signup-mode.mjs      # 25 open/closed sign-up tests
+│   ├── test-portal.mjs           # 31 pupil dashboard tests
+│   ├── test-signup-mode.mjs      # 25 open/closed sign-up tests
+│   └── test-roles.mjs            # 91 parent / teacher / admin tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -277,8 +282,11 @@ npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
 npm run check        # deployment checks, no database needed
-npm test             # checks + 121 API tests, needs DATABASE_URL
+npm test             # checks + 212 API tests, needs DATABASE_URL
+npm run test:roles   # just the parent, teacher and admin dashboards
 ```
+
+Each suite puts the database into a known state before it runs, so they pass in any order.
 
 ### Open sign-up
 
@@ -366,6 +374,9 @@ return 503 with a "contact the school office" message, rather than pretending to
 | `/api/auth/logout` | POST | Revokes the session server-side and clears the cookie |
 | `/api/auth/me` | GET | The signed-in user, or 401 |
 | `/api/portal/dashboard` | GET | Everything the dashboard shows, for the signed-in pupil |
+| `/api/portal/parent` | GET | The linked child's day, results, attendance and homework |
+| `/api/portal/teacher` | GET | The teacher's own periods, classes and pupil numbers |
+| `/api/portal/admin` | GET | School-wide totals, roll by class, newest accounts |
 | `/api/portal/classes` | GET | The week's timetable for their class |
 | `/api/portal/assignments` | GET | Assignments with this pupil's submitted state |
 | `/api/portal/results` | GET | Subject scores and the overall average |
@@ -380,16 +391,40 @@ return 503 with a "contact the school office" message, rather than pretending to
 
 ### The portal pages
 
-Ten pages share one shell (`assets/js/portal.js` reads `body[data-portal-page]`, fetches
-that section once and renders it), so the sidebar, top bar and identity block are defined
-in a single place.
+Thirteen pages share one shell (`assets/js/portal.js` reads `body[data-portal-page]`,
+fetches that section once and renders it), so the sidebar, top bar and identity block are
+defined in a single place.
 
-Everything is keyed on the `register_id` attached to the session, never on anything in the
-request, so a pupil can only ever load their own record. Marking a message read carries the
-same condition, so passing another pupil's message id simply matches no row. Signing out
-revokes the session server-side, and changing your password ends every other session.
-A parent or staff account gets a 403 rather than a pupil's pages, because those views are
-not built yet.
+Everything is keyed on the `register_id` (or `staff_id`) attached to the session, never on
+anything in the request, so a pupil can only ever load their own record and a parent only
+the child the school linked them to. Marking a message read carries the same condition, so
+passing another pupil's message id simply matches no row. Signing out revokes the session
+server-side, and changing your password ends every other session.
+
+### One dashboard per role
+
+| Role | Lands on | Sees |
+| --- | --- | --- |
+| Student | `portal.html` | Their own timetable, assignments, results, attendance, messages |
+| Parent | `parent.html` | One child: today's lessons, homework, results, attendance |
+| Teacher | `teacher.html` | Their own periods, the classes they take, pupil numbers |
+| Administrator | their role's page, plus `admin.html` | The roll by class, staff and account totals, newest accounts, sign-up state |
+
+Opening someone else's dashboard returns 403 with the address of your own, and the page
+offers a button straight to it rather than a dead end.
+
+Each role's sidebar lists only what works for that role; anything not built yet is shown
+greyed out and labelled "Soon" rather than being a link that goes nowhere.
+
+**Administrators.** `users.is_admin` is separate from the role, because being an
+administrator is an extra power rather than a different identity: an admin still lands on
+their own dashboard and reaches the admin view from a sidebar link that is hidden for
+everyone else. The first **staff** account created on a site that has no administrator yet
+becomes one, so whoever sets the school up can get in without editing the database. It has
+to be staff: the admin view reads across every pupil's record, so a pupil who happens to
+sign up first must not be handed it. `PORTAL_ADMIN_EMAILS` (comma separated) names further
+administrators. The admin endpoint returns names, roles and emails only; never a password
+hash and never a session token.
 
 Grades on the results page follow the WAEC scale (A1 75+, B2 70-74, B3 65-69, C4 60-64,
 C5 55-59, C6 50-54, D7 45-49, E8 40-44, F9 below 40).
@@ -407,11 +442,14 @@ committing to a database, not an account system: real accounts need `DATABASE_UR
 
 ### Demo preview
 
-Add `?demo=1` to any portal page to see it with a fixed sample student, with no account and
-no database:
+Add `?demo=1` to any portal page to see it with fixed sample data, with no account and no
+database. That works for every role:
 
 ```
-https://your-site.vercel.app/portal.html?demo=1
+https://your-site.vercel.app/portal.html?demo=1     # pupil
+https://your-site.vercel.app/parent.html?demo=1     # parent
+https://your-site.vercel.app/teacher.html?demo=1    # teacher
+https://your-site.vercel.app/admin.html?demo=1      # administrator
 ```
 
 It reads `/api/portal/demo`, which never touches the database, so it works on a deployment
@@ -421,8 +459,12 @@ the school can see the portal before their register is loaded.
 
 ### Still to do
 
-- **Only the student view exists.** Parent and staff portals are not built; those accounts
-  can sign in but get a 403 on portal pages.
+- **The parent, teacher and admin views are one page each.** They read live data, but the
+  deeper sections behind them (take a register, enter results, edit the roll, post an
+  announcement) are not built; those sidebar items are labelled "Soon" rather than linking
+  nowhere. Messages and settings are pupil-only for now.
+- **Nothing writes back yet.** A teacher cannot mark a register or enter a score from the
+  portal, and an administrator cannot edit an account. Every dashboard is read-only.
 - **Portal search does nothing**, and there is no way to hand work in or reply to a message
   from the portal. Each page says so where it applies.
 - **No password reset.** The login page tells students to ask their form teacher and

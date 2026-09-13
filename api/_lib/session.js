@@ -19,8 +19,8 @@ export async function getSessionUser(req) {
   if (!token) return null;
 
   const { rows } = await query(
-    `SELECT u.id, u.role, u.full_name, u.email, u.phone, u.last_login_at,
-            r.admission_no, r.class_level, s.staff_no
+    `SELECT u.id, u.role, u.full_name, u.email, u.phone, u.last_login_at, u.is_admin,
+            r.admission_no, r.class_level, r.class_arm, s.staff_no
        FROM sessions sess
        JOIN users u          ON u.id = sess.user_id
        LEFT JOIN register r  ON r.id = u.register_id
@@ -54,5 +54,6 @@ export function publicUser(row) {
     admissionNo: row.admission_no || null,
     classLevel: row.class_level || null,
     staffNo: row.staff_no || null,
+    isAdmin: Boolean(row.is_admin),
   };
 }

@@ -12,12 +12,13 @@
     "db:setup": "node scripts/db.mjs setup",
     "db:demo": "node scripts/db.mjs demo",
     "import:register": "node scripts/import-register.mjs",
-    "test": "node scripts/check-deploy.mjs && node scripts/test-auth.mjs && node scripts/test-portal.mjs && node scripts/test-signup-mode.mjs",
+    "test": "node scripts/check-deploy.mjs && node scripts/test-auth.mjs && node scripts/test-portal.mjs && node scripts/test-signup-mode.mjs && node scripts/test-roles.mjs",
     "test:auth": "node scripts/test-auth.mjs",
     "test:portal": "node scripts/test-portal.mjs",
     "db:status": "node scripts/db.mjs status",
     "test:signup": "node scripts/test-signup-mode.mjs",
-    "check": "node scripts/check-deploy.mjs"
+    "check": "node scripts/check-deploy.mjs",
+    "test:roles": "node scripts/test-roles.mjs"
   },
   "dependencies": {
     "pg": "^8.13.1"

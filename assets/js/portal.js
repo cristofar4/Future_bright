@@ -43,6 +43,21 @@
   var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
+  /* Names here are very often written with a title, and "Good afternoon, Dr.!"
+     is not a greeting. The API strips honorifics the same way. */
+  var HONORIFICS = ["mr","mrs","ms","miss","mx","dr","prof","professor","engr","engineer",
+                    "arc","barr","chief","alhaji","alhaja","hajia","rev","revd","reverend",
+                    "pastor","fr","bishop","elder","deacon","deaconess","capt","col","gen",
+                    "sir","lady","madam","mallam","oba"];
+
+  function nameParts(fullName) {
+    var words = String(fullName || "").split(/\s+/).filter(Boolean);
+    var rest = words.filter(function (w, i) {
+      return !(i === 0 && HONORIFICS.indexOf(w.replace(/\.$/, "").toLowerCase()) !== -1);
+    });
+    return rest.length ? rest : words;              // a title and nothing else
+  }
+
   function svg(path) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
            'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + path + "</svg>";
@@ -83,6 +98,22 @@
     return shortDate(iso);
   }
 
+  /* The server runs in UTC, so for pages it does not greet, read the clock of
+     whoever is looking at the page. */
+  function localGreeting() {
+    var h = new Date().getHours();
+    return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  }
+
+  /** JSS2 / A, written out the way a timetable or a letter home would. */
+  function className(level, arm) {
+    var m = /^(JSS|SS)(\d)$/i.exec(String(level || ""));
+    var name = m
+      ? (m[1].toUpperCase() === "JSS" ? "Junior" : "Senior") + " Secondary " + m[2]
+      : String(level || "");
+    return arm ? name + ", Arm " + String(arm).toUpperCase() : name;
+  }
+
   /** WAEC grading, which is what a Nigerian secondary school report uses. */
   function grade(score) {
     if (score >= 75) { return { code: "A1", remark: "Excellent", tone: "done" }; }
@@ -97,30 +128,52 @@
   }
 
   /* --- shared pieces ---------------------------------------------------- */
-  function applyIdentity(data) {
-    var s = data.student || {};
 
-    // In preview, show the person who filled the form rather than the sample pupil.
+  /* Which object in the payload describes the person signed in. A parent page
+     is headed by the parent, not by the child it is about. */
+  var IDENTITY = { parent: "parent", teacher: "teacher", admin: "admin" };
+
+  function applyIdentity(data) {
+    var key = IDENTITY[PAGE] || "student";
+    var s = data[key] || data.student || {};
+
+    // In preview, show the person who filled the form rather than the sample
+    // pupil, but only on the dashboard their chosen role belongs to.
     var mine = DEMO ? previewAccount() : null;
-    if (mine && mine.fullName) {
-      var words = mine.fullName.split(/\s+/).filter(Boolean);
-      s = Object.assign({}, s, {
+    if (mine && mine.fullName && (mine.role || "student") === key) {
+      var words = nameParts(mine.fullName);
+      var over = {
         fullName: mine.fullName,
         firstName: words[0] || s.firstName,
         initials: words.slice(0, 2).map(function (w) { return w[0].toUpperCase(); }).join(""),
-        admissionNo: mine.reference || s.admissionNo,
-        className: (mine.classLevel || "") ? mine.classLevel + "A" : s.className,
         email: mine.email || s.email,
         phone: mine.phone || s.phone,
-      });
-      data = Object.assign({}, data, { student: s });
+      };
+      if (key === "student") {
+        over.admissionNo = mine.reference || s.admissionNo;
+        over.className = (mine.classLevel || "") ? mine.classLevel + "A" : s.className;
+      }
+      if (key === "teacher") { over.staffNo = mine.reference || s.staffNo; }
+      s = Object.assign({}, s, over);
+      var patch = {};
+      patch[key] = s;
+      data = Object.assign({}, data, patch);
     }
     setAll("[data-name]", s.fullName || "");
     setAll("[data-initials]", s.initials || "");
-    setAll("[data-class]", s.className || "-");
-    setAll("[data-admission]", s.admissionNo || "-");
     setAll("[data-first-name]", s.firstName || "");
-    if (data.greeting) { setAll("[data-greeting]", data.greeting); }
+    if (key === "student") {
+      setAll("[data-class]", s.className || "-");
+      setAll("[data-admission]", s.admissionNo || "-");
+    }
+    // The admin view is reachable from any dashboard, but only by an admin.
+    Array.prototype.forEach.call(document.querySelectorAll("[data-admin-only]"), function (n) {
+      n.hidden = !s.isAdmin;
+    });
+
+    if (s.staffNo) { setAll("[data-staff-no]", s.staffNo); }
+    if (s.email) { setAll("[data-email]", s.email); }
+    setAll("[data-greeting]", data.greeting || localGreeting());
 
     if (data.term) {
       setAll("[data-session]", data.term.session);
@@ -139,9 +192,10 @@
         b.hidden = !unread;
       });
     }
+    return data;
   }
 
-  function lessonRow(row) {
+  function lessonRow(row, showClass) {
     var item = el("div", "lesson");
     var icon = el("span", "tile-icon " + (ACCENTS[row.accent] || "bg-blue"));
     icon.innerHTML = svg(SUBJECT_ICON[row.icon] || SUBJECT_ICON.book);
@@ -149,7 +203,8 @@
     item.appendChild(el("span", "lesson__time", row.starts_at + " - " + row.ends_at));
     var what = el("span", "lesson__what");
     what.appendChild(el("strong", null, row.subject));
-    what.appendChild(el("span", null, row.teacher));
+    // A teacher already knows who is teaching: tell them which class it is.
+    what.appendChild(el("span", null, (showClass ? row.class_name : row.teacher) || ""));
     item.appendChild(what);
     if (row.room) {
       var room = el("span", "lesson__room");
@@ -160,10 +215,10 @@
     return item;
   }
 
-  function renderLessons(host, list) {
+  function renderLessons(host, list, showClass) {
     clear(host);
     if (!list.length) { host.appendChild(el("p", "empty-line", "No lessons scheduled.")); return; }
-    list.forEach(function (row) { host.appendChild(lessonRow(row)); });
+    list.forEach(function (row) { host.appendChild(lessonRow(row, showClass)); });
   }
 
   function taskRow(row) {
@@ -209,6 +264,41 @@
       requestAnimationFrame(function () {
         fill.style.width = Math.max(0, Math.min(100, row.score)) + "%";
       });
+    });
+  }
+
+  /* renderBars fixes the scale at 0-100 because a score is a percentage. These
+     bars compare counts, so the longest row is what the rest are drawn against. */
+  function renderCountBars(host, rows, emptyText) {
+    clear(host);
+    if (!rows.length) { host.appendChild(el("p", "empty-line", emptyText)); return; }
+    var top = rows.reduce(function (m, r) { return Math.max(m, r.value); }, 0) || 1;
+    rows.forEach(function (row) {
+      var line = el("div", "bar-row");
+      line.appendChild(el("span", "bar-row__name", row.label));
+      var track = el("span", "bar-row__track");
+      var fill = el("span", "bar-row__fill");
+      track.appendChild(fill);
+      line.appendChild(track);
+      line.appendChild(el("span", "bar-row__pct", String(row.value)));
+      host.appendChild(line);
+      requestAnimationFrame(function () {
+        fill.style.width = Math.max(4, (row.value / top) * 100) + "%";
+      });
+    });
+  }
+
+  function setKpi(key, value) {
+    setAll('[data-kpi="' + key + '"]', value);
+  }
+
+  function renderFacts(host, rows) {
+    clear(host);
+    rows.forEach(function (row) {
+      var li = el("li");
+      li.appendChild(el("span", null, row[0]));
+      li.appendChild(el("b", null, row[1]));
+      host.appendChild(li);
     });
   }
 
@@ -464,6 +554,145 @@
     settings: function (d) {
       setAll("[data-email]", (d.student && d.student.email) || "-");
     },
+
+    /* --- parent: one child, seen from home ------------------------------ */
+    parent: function (d) {
+      var child = d.child || {};
+      setAll("[data-child-name]", child.className ? child.fullName + " (" + child.className + ")" : (child.fullName || "-"));
+      setAll("[data-child-name-full]", child.fullName || "-");
+      setAll("[data-child-first]", child.firstName || "Your child");
+      setAll("[data-lessons-title]", (child.firstName ? child.firstName + "\u2019s" : "Today\u2019s") + " Lessons");
+      setAll("[data-child-class]", child.className || "-");
+      setAll("[data-child-admission]", child.admissionNo || "-");
+      setAll("[data-child-initials]", child.initials || "");
+
+      renderLessons(document.querySelector("[data-lessons]"), d.today || []);
+      renderTasks(document.querySelector("[data-tasks]"), d.assignments || []);
+      renderBars(document.querySelector("[data-bars]"), d.results || []);
+      renderNotes(document.querySelector("[data-notes]"), d.announcements || []);
+
+      setAll("[data-average]", d.average === null || d.average === undefined ? "-" : d.average + "%");
+      setDonut("average", d.average || 0);
+      attendanceBlock(d.attendance || {});
+
+      setKpi("average", d.average === null || d.average === undefined ? "-" : d.average + "%");
+      setKpi("attendance", d.attendance && d.attendance.percent !== null && d.attendance.percent !== undefined
+        ? d.attendance.percent + "%" : "-");
+      setKpi("outstanding", d.outstanding || 0);
+      setKpi("subjects", (d.results || []).length);
+
+      document.title = (child.firstName || "My child") + "'s Progress | Bright Future Secondary School";
+    },
+
+    /* --- teacher: today, and the classes behind it ---------------------- */
+    teacher: function (d) {
+      var totals = d.totals || {};
+      setKpi("lessons", totals.lessonsPerWeek || 0);
+      setKpi("classes", totals.classes || 0);
+      setKpi("pupils", totals.pupils || 0);
+      setKpi("subjects", totals.subjects || 0);
+
+      renderLessons(document.querySelector("[data-lessons]"), d.today || [], true);
+      renderNotes(document.querySelector("[data-notes]"), d.announcements || []);
+
+      var host = document.querySelector("[data-classes]");
+      var classes = d.classes || [];
+      clear(host);
+      if (!classes.length) {
+        host.appendChild(el("p", "empty-line", "No classes are on your timetable yet."));
+      } else {
+        classes.forEach(function (row) {
+          var line = el("div", "class-row");
+          line.appendChild(el("span", "class-row__name", row.class_name));
+          var what = el("span", "class-row__what");
+          what.appendChild(el("strong", null, row.subjects || "No subject recorded"));
+          what.appendChild(el("span", null, className(row.class_level, row.class_arm)));
+          line.appendChild(what);
+          line.appendChild(el("span", "class-row__count", plural(row.pupils || 0, "pupil")));
+          host.appendChild(line);
+        });
+      }
+
+      renderCountBars(document.querySelector("[data-bars]"),
+        classes.map(function (c) { return { label: c.class_name, value: c.pupils || 0 }; }),
+        "Nothing to chart yet.");
+
+      document.title = "Teacher Dashboard | Bright Future Secondary School";
+    },
+
+    /* --- administrator: the school, by its numbers ---------------------- */
+    admin: function (d) {
+      var t = d.totals || {};
+      setKpi("pupils", t.pupils || 0);
+      setKpi("staff", t.staff || 0);
+      setKpi("accounts", t.accounts || 0);
+      setKpi("online", t.active_sessions || 0);
+
+      renderCountBars(document.querySelector("[data-bars]"),
+        (d.byClass || []).map(function (c) { return { label: c.class_name, value: c.pupils || 0 }; }),
+        "No pupils are on the register yet.");
+
+      renderFacts(document.querySelector("[data-facts]"), [
+        ["Pupils on the register", t.pupils || 0],
+        ["Pupils who have left", t.left_pupils || 0],
+        ["Staff on the register", t.staff || 0],
+        ["Pupil accounts", t.student_accounts || 0],
+        ["Parent accounts", t.parent_accounts || 0],
+        ["Teacher accounts", t.teacher_accounts || 0],
+        ["Periods on the timetable", t.lessons || 0],
+        ["Assignments set", t.assignments || 0],
+        ["Announcements posted", t.announcements || 0],
+      ]);
+
+      var host = document.querySelector("[data-accounts]");
+      var accounts = d.recentAccounts || [];
+      clear(host);
+      if (!accounts.length) {
+        host.appendChild(el("p", "empty-line", "No one has created an account yet."));
+      } else {
+        accounts.forEach(function (row) {
+          var line = el("div", "acct-row");
+          var who = el("span", "acct-row__who");
+          who.appendChild(el("strong", null, row.full_name));
+          who.appendChild(el("span", null, row.email));
+          line.appendChild(who);
+          var role = row.is_admin ? "admin" : row.role;
+          line.appendChild(el("span", "role-pill role-pill--" + role,
+            role.charAt(0).toUpperCase() + role.slice(1)));
+          line.appendChild(el("span", "acct-row__when", whenSent(row.created_at)));
+          host.appendChild(line);
+        });
+      }
+
+      var reg = d.register || {};
+      var state = document.querySelector("[data-register-state]");
+      clear(state);
+      var line = el("div", "state-line " + (reg.openSignup ? "state-line--open" : "state-line--closed"));
+      line.innerHTML = svg(reg.openSignup
+        ? '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4h.01"/>'
+        : '<rect x="4.5" y="10.5" width="15" height="10.5" rx="2.2"/><path d="M8 10.5V7.6a4 4 0 018 0v2.9"/>');
+      var text = el("span");
+      var head = el("b", null, reg.openSignup ? "Sign-up is open. " : "Sign-up is closed to the register. ");
+      text.appendChild(head);
+      text.appendChild(document.createTextNode(reg.openSignup
+        ? "Anyone can create an account, because no school register has been imported yet. Import one to close it."
+        : "Only people already on the school register can create an account."));
+      line.appendChild(text);
+      state.appendChild(line);
+
+      var bySource = {};
+      (reg.sources || []).forEach(function (s) { bySource[s.source] = s.n; });
+      renderFacts(document.querySelector("[data-register-facts]"), [
+        ["Rows imported from the school register", bySource.import || 0],
+        ["Rows created by someone signing up", bySource.signup || 0],
+        ["Sample rows from the demo data", bySource.demo || 0],
+        ["Signed in right now", t.active_sessions || 0],
+        ["PORTAL_OPEN_SIGNUP override", reg.override || "not set"],
+      ]);
+
+      renderNotes(document.querySelector("[data-notes]"), d.announcements || []);
+      document.title = "Admin Dashboard | Bright Future Secondary School";
+    },
   };
 
   /* --- which endpoint feeds this page ----------------------------------- */
@@ -471,6 +700,7 @@
     dashboard: "dashboard", classes: "classes", assignments: "assignments",
     results: "results", attendance: "attendance", messages: "messages",
     profile: "profile", calendar: "dashboard", resources: "profile", settings: "profile",
+    parent: "parent", teacher: "teacher", admin: "admin",
   };
 
   function apiUrl(section) {
@@ -496,7 +726,8 @@
 
     // Keep the preview flag on as you move around.
     if (DEMO) {
-      Array.prototype.forEach.call(document.querySelectorAll('a[href^="portal"]'), function (a) {
+      var inPortal = 'a[href^="portal"], a[href^="parent.html"], a[href^="teacher.html"], a[href^="admin.html"]';
+      Array.prototype.forEach.call(document.querySelectorAll(inPortal), function (a) {
         if (a.getAttribute("href").indexOf("demo=") === -1) {
           a.setAttribute("href", a.getAttribute("href") + "?demo=1");
         }
@@ -612,12 +843,19 @@
   }
 
   /* --- boot -------------------------------------------------------------- */
-  function showError(message, offerSignIn) {
+  function showError(message, offerSignIn, home) {
     document.querySelector("[data-loading]").classList.add("is-hidden");
     var box = document.querySelector("[data-error]");
     box.querySelector("[data-error-text]").textContent = message;
     var action = box.querySelector("[data-error-action]");
-    if (action && !offerSignIn) { action.textContent = "Back to the website"; action.href = "index.html"; }
+    if (action && home) {
+      // Signed in, wrong dashboard: send them to the one that is theirs.
+      action.textContent = "Go to your dashboard";
+      action.href = home;
+    } else if (action && !offerSignIn) {
+      action.textContent = "Back to the website";
+      action.href = "index.html";
+    }
     box.classList.remove("is-hidden");
   }
 
@@ -633,11 +871,14 @@
         return;
       }
       var data = await res.json().catch(function () { return {}; });
-      if (!res.ok) { showError(data.message || "We could not load this page.", res.status !== 403); return; }
+      if (!res.ok) {
+        showError(data.message || "We could not load this page.", res.status !== 403, data.home);
+        return;
+      }
 
-      applyIdentity(data);
       var render = RENDER[PAGE];
-      if (render) { render(data); }
+      if (render) { render(applyIdentity(data)); }
+      else { applyIdentity(data); }
 
       document.querySelector("[data-loading]").classList.add("is-hidden");
       document.querySelector("[data-dash]").classList.remove("is-hidden");

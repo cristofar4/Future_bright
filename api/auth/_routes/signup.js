@@ -178,11 +178,21 @@ export default async function handler(req, res) {
     const passwordHash = await hashPassword(password);
     let created;
     try {
+      // The first STAFF account on a site with no administrator yet becomes the
+      // administrator, so whoever sets the school up can reach the admin view.
+      // It has to be staff: the admin page reads across every pupil's record,
+      // and a school where a pupil happens to sign up first must not hand that
+      // to them. PORTAL_ADMIN_EMAILS names further administrators.
+      const adminEmails = String(process.env.PORTAL_ADMIN_EMAILS || "")
+        .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+
       const { rows } = await query(
-        `INSERT INTO users (role, full_name, email, phone, password_hash, register_id, staff_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING id, role, full_name, email, phone`,
-        [role, fullName, email, phoneRaw || null, passwordHash, registerId, staffId]
+        `INSERT INTO users (role, full_name, email, phone, password_hash, register_id, staff_id, is_admin)
+         VALUES ($1, $2, $3, $4, $5, $6, $7,
+                 ($8 OR ($1 = 'teacher' AND NOT EXISTS (SELECT 1 FROM users WHERE is_admin))))
+         RETURNING id, role, full_name, email, phone, is_admin`,
+        [role, fullName, email, phoneRaw || null, passwordHash, registerId, staffId,
+         adminEmails.includes(email)]
       );
       created = rows[0];
     } catch (err) {
@@ -203,8 +213,8 @@ export default async function handler(req, res) {
     setSessionCookie(req, res, token);
 
     const { rows: full } = await query(
-      `SELECT u.id, u.role, u.full_name, u.email, u.phone,
-              r.admission_no, r.class_level, s.staff_no
+      `SELECT u.id, u.role, u.full_name, u.email, u.phone, u.is_admin,
+              r.admission_no, r.class_level, r.class_arm, s.staff_no
          FROM users u
          LEFT JOIN register r       ON r.id = u.register_id
          LEFT JOIN staff_register s ON s.id = u.staff_id

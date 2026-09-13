@@ -9,10 +9,15 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { query, closePool } from "../api/_lib/db.js";
 
-// Load the demo fixture rather than assuming a previous command left it in
-// place: the auth suite truncates the register, so this must stand alone.
+// Load the demo fixtures rather than assuming a previous command left them in
+// place: other suites truncate the register, so this must stand alone. The
+// register is cleared first, or a row an earlier sign-up created would survive
+// ON CONFLICT DO NOTHING and keep its missing guardian details.
 const here = dirname(fileURLToPath(import.meta.url));
-await query(await readFile(join(here, "..", "db", "demo-portal.sql"), "utf8"));
+const db = (name) => readFile(join(here, "..", "db", name), "utf8");
+await query("TRUNCATE register, staff_register RESTART IDENTITY CASCADE");
+await query(await db("demo-register.sql"));
+await query(await db("demo-portal.sql"));
 
 const authRoute   = (await import("../api/auth/[action].js")).default;
 const portalRoute = (await import("../api/portal/[section].js")).default;

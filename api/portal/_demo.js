@@ -138,6 +138,66 @@ export function demoPayload(section) {
     case "calendar":
       return { ...base, announcements: ANNOUNCEMENTS };
 
+    case "parent":
+      return {
+        ...base,
+        parent: { fullName: "Mrs. Ada James", firstName: "Ada", initials: "AJ",
+                  email: "mrs.james@example.com", phone: "+234 806 222 3344" },
+        child: DEMO_STUDENT,
+        today: lessonsFor(weekday),
+        results: SUBJECTS.map((s) => ({ subject: s.subject, score: s.score })).sort((a, b) => b.score - a.score),
+        average: Math.round(SUBJECTS.reduce((n, s) => n + s.score, 0) / SUBJECTS.length),
+        attendance: ATTENDANCE,
+        assignments: ASSIGNMENTS.slice(0, 4),
+        announcements: ANNOUNCEMENTS,
+        outstanding: ASSIGNMENTS.slice(0, 4).filter((a) => !a.submitted).length,
+      };
+
+    case "teacher": {
+      const mine = lessonsFor(weekday).slice(0, 4).map((l, i) => ({
+        ...l, teacher: "Mr. Okafor", class_name: ["SS2A", "SS1A", "JSS3A", "SS3A"][i],
+      }));
+      const classes = [
+        { class_name: "SS2A", class_level: "SS2", class_arm: "A", pupils: 24, subjects: "Mathematics" },
+        { class_name: "SS1A", class_level: "SS1", class_arm: "A", pupils: 26, subjects: "Mathematics" },
+        { class_name: "JSS3A", class_level: "JSS3", class_arm: "A", pupils: 22, subjects: "Mathematics" },
+        { class_name: "SS3A", class_level: "SS3", class_arm: "A", pupils: 19, subjects: "Further Mathematics" },
+      ];
+      return {
+        ...base,
+        teacher: { fullName: "Mr. Emeka Okafor", firstName: "Emeka", initials: "EO",
+                   staffNo: "BFS/STF/014", email: "e.okafor@brightfuture.edu.ng" },
+        today: mine,
+        classes,
+        announcements: ANNOUNCEMENTS,
+        totals: { lessonsPerWeek: 20, classes: classes.length,
+                  pupils: classes.reduce((n, c) => n + c.pupils, 0), subjects: 2 },
+      };
+    }
+
+    case "admin":
+      return {
+        ...base,
+        admin: { isAdmin: true, fullName: "Dr. Emeka Anyanwu", firstName: "Emeka", initials: "EA",
+                 email: "principal@brightfuture.edu.ng", role: "teacher" },
+        totals: { pupils: 512, left_pupils: 38, staff: 54, accounts: 431,
+                  student_accounts: 318, parent_accounts: 96, teacher_accounts: 17,
+                  lessons: 210, assignments: 46, announcements: 12, active_sessions: 27 },
+        byClass: [
+          { class_name: "JSS1A", pupils: 28 }, { class_name: "JSS2A", pupils: 26 },
+          { class_name: "JSS3A", pupils: 22 }, { class_name: "SS1A", pupils: 26 },
+          { class_name: "SS2A", pupils: 24 }, { class_name: "SS3A", pupils: 19 },
+        ],
+        recentAccounts: [
+          { full_name: "Chidera Okafor", role: "student", email: "chidera@example.com", created_at: new Date(Date.now() - 2 * 3600e3).toISOString(), is_admin: false },
+          { full_name: "Mrs. Amina Bello", role: "parent", email: "amina@example.com", created_at: new Date(Date.now() - 20 * 3600e3).toISOString(), is_admin: false },
+          { full_name: "Mrs. Folake Ogun", role: "teacher", email: "f.ogun@brightfuture.edu.ng", created_at: new Date(Date.now() - 46 * 3600e3).toISOString(), is_admin: false },
+          { full_name: "Dr. Emeka Anyanwu", role: "teacher", email: "principal@brightfuture.edu.ng", created_at: new Date(Date.now() - 400 * 3600e3).toISOString(), is_admin: true },
+        ],
+        announcements: ANNOUNCEMENTS.map((a) => ({ ...a, audience: "all" })),
+        register: { sources: [{ source: "import", n: 512 }], imported: 512, openSignup: false, override: null },
+      };
+
     default:
       return base;
   }

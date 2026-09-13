@@ -33,8 +33,8 @@ export default async function handler(req, res) {
     if (limited) return json(res, 429, { error: "rate_limited", message: limited });
 
     const { rows } = await query(
-      `SELECT u.id, u.role, u.full_name, u.email, u.phone, u.password_hash,
-              r.admission_no, r.class_level, s.staff_no
+      `SELECT u.id, u.role, u.full_name, u.email, u.phone, u.password_hash, u.is_admin,
+              r.admission_no, r.class_level, r.class_arm, s.staff_no
          FROM users u
          LEFT JOIN register r       ON r.id = u.register_id
          LEFT JOIN staff_register s ON s.id = u.staff_id

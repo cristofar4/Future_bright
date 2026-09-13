@@ -444,3 +444,87 @@ body[data-page="portal"] { background: var(--portal-bg); }
 
 /* Section pages reuse the two-column grid without an aside on most pages. */
 .portal-main > [data-dash] > .portal-grid { margin-top: 0; }
+
+/* ==========================================================================
+   Role dashboards (parent, teacher, administrator)
+   ========================================================================== */
+
+/* --- headline figures ---------------------------------------------------- */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; }
+.kpi {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--card-radius);
+  padding: 1.1rem 1.2rem; box-shadow: 0 1px 3px rgba(16,34,63,.05);
+  display: grid; gap: .15rem;
+}
+.kpi__icon {
+  width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
+  color: #fff; margin-bottom: .55rem;
+}
+.kpi__icon svg { width: 19px; height: 19px; }
+.kpi__value {
+  font-family: var(--font-head); font-weight: 800; line-height: 1.1;
+  font-size: clamp(1.3rem, 1.05rem + .8vw, 1.7rem); color: var(--navy-900);
+}
+.kpi__label { font-size: .8rem; color: var(--muted); }
+
+/* The top bar for a role with no profile or messages page of its own: same
+   shape, no hover, nothing to click. */
+.bell-btn--flat { cursor: default; color: var(--muted); }
+.bell-btn--flat:hover { background: none; }
+.who--flat { cursor: default; }
+.who--flat:hover { background: none; }
+
+/* --- who someone is ------------------------------------------------------ */
+.role-pill {
+  display: inline-block; margin-top: .3rem; border-radius: 999px;
+  padding: .28rem .8rem; font-family: var(--font-head); font-weight: 700;
+  font-size: .76rem; border: 1px solid transparent;
+}
+.role-pill--student { background: var(--blue-50);  border-color: var(--blue-100); color: var(--blue-700); }
+.role-pill--parent  { background: #f3edff;         border-color: #ded0ff;         color: #5a32b0; }
+.role-pill--teacher { background: #e8f7ef;         border-color: #c7ecd7;         color: #1c7a45; }
+.role-pill--admin   { background: #fff2e0;         border-color: #f6d9ae;         color: #94560d; }
+
+/* --- a class a teacher takes --------------------------------------------- */
+.class-row { display: flex; align-items: center; gap: .8rem; padding: .75rem 0; }
+.class-row + .class-row { border-top: 1px solid var(--line); }
+.class-row__name {
+  width: 3.6rem; flex: none; font-family: var(--font-head); font-weight: 800;
+  font-size: .95rem; color: var(--navy-900);
+}
+.class-row__what { flex: 1; min-width: 0; }
+.class-row__what strong {
+  display: block; font-family: var(--font-head); font-size: .88rem; color: var(--ink);
+}
+.class-row__what span { display: block; font-size: .8rem; color: var(--muted); }
+.class-row__count {
+  flex: none; font-family: var(--font-head); font-weight: 700; font-size: .8rem;
+  color: var(--blue-700); background: var(--blue-50); border: 1px solid var(--blue-100);
+  border-radius: 999px; padding: .3rem .7rem;
+}
+
+/* --- newest portal accounts ---------------------------------------------- */
+.acct-row { display: flex; align-items: center; gap: .8rem; padding: .7rem 0; }
+.acct-row + .acct-row { border-top: 1px solid var(--line); }
+.acct-row__who { flex: 1; min-width: 0; }
+.acct-row__who strong {
+  display: block; font-family: var(--font-head); font-size: .88rem; color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.acct-row__who span { display: block; font-size: .79rem; color: var(--muted); overflow-wrap: anywhere; }
+.acct-row__when { flex: none; font-size: .76rem; color: var(--muted); text-align: right; }
+
+/* --- a standing state, such as whether sign-up is open -------------------- */
+.state-line {
+  display: flex; align-items: flex-start; gap: .6rem; border-radius: 12px;
+  padding: .8rem .95rem; font-size: .86rem; line-height: 1.55; margin-bottom: .2rem;
+}
+.state-line svg { width: 18px; height: 18px; flex: none; margin-top: .15rem; }
+.state-line--open   { background: #fff6e5; border: 1px solid #f3d9a4; color: #7a5312; }
+.state-line--closed { background: #e8f7ef; border: 1px solid #c7ecd7; color: #1c7a45; }
+.state-line b { font-family: var(--font-head); }
+
+/* Two figures still fit side by side on a phone; only the narrowest screens
+   need them stacked. */
+@media (max-width: 1180px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 360px)  { .kpi-row { grid-template-columns: 1fr; } }

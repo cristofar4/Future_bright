@@ -110,6 +110,14 @@ CREATE TABLE IF NOT EXISTS terms (
   CHECK (ends_on > starts_on)
 );
 
+-- --- Administrators --------------------------------------------------------
+-- The first STAFF account created on a site that has no administrator yet
+-- becomes the administrator, so whoever sets the school up can reach the admin
+-- view without editing anything. It has to be staff: the admin view reads
+-- across every pupil's record, so a pupil signing up first must not get it.
+-- PORTAL_ADMIN_EMAILS can also name administrators, comma separated.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
+
 -- --- Where a register row came from ---------------------------------------
 -- 'import' means it came from the school's spreadsheet; 'signup' means an open
 -- sign-up created it. Sign-up stays open until at least one imported row exists,

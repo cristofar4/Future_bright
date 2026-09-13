@@ -179,15 +179,22 @@
     return { status: response.status, body: body || {} };
   }
 
+  /* The dashboard each role belongs on. An administrator still lands on their
+     own dashboard; the admin view is a link in the sidebar from there. */
+  function homeFor(user) {
+    var role = (user && user.role) || "student";
+    return role === "parent"  ? "parent.html"
+         : role === "teacher" ? "teacher.html"
+         : "portal.html";
+  }
+
   function afterAuth(form, user, verb) {
     showAlert(form, verb + ", " + (user.fullName || "") + ". Taking you to the portal…", "ok");
     // Only same-site paths are followed, so ?next= cannot bounce anyone off-site.
     var next = new URLSearchParams(location.search).get("next");
     var safe = next && /^\/[^/\\]/.test(next) ? next : null;
-    // The dashboard is the student view; everyone else lands on the site for now.
-    var fallback = user.role === "student" ? "portal.html" : "index.html";
     window.setTimeout(function () {
-      window.location.href = safe || fallback;
+      window.location.href = safe || homeFor(user);
     }, 1200);
   }
 
@@ -282,7 +289,8 @@
         }
         showAlert(form, "Preview ready, " + data.fullName +
                         ". Remember: this is saved on this device only, not at the school.", "ok");
-        window.setTimeout(function () { window.location.href = "portal.html?demo=1"; }, 1400);
+        var preview = homeFor({ role: data.role });
+        window.setTimeout(function () { window.location.href = preview + "?demo=1"; }, 1400);
         return;
       }
 

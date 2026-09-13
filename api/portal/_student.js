@@ -6,6 +6,40 @@ import { query } from "../_lib/db.js";
 import { json } from "../_lib/http.js";
 import { getSessionUser } from "../_lib/session.js";
 
+/* Nigerian names are very often written with a title, and "Good afternoon,
+ * Dr.!" is not a greeting. Strip a leading honorific before deciding what
+ * someone's first name and initials are. */
+const HONORIFICS = new Set([
+  "mr", "mrs", "ms", "miss", "mx", "dr", "prof", "professor", "engr", "engineer",
+  "arc", "barr", "chief", "alhaji", "alhaja", "hajia", "rev", "revd", "reverend",
+  "pastor", "fr", "bishop", "elder", "deacon", "deaconess", "capt", "col", "gen",
+  "sir", "lady", "madam", "mallam", "oba",
+]);
+
+/** The words of a name with any leading title removed. */
+export function nameParts(fullName) {
+  const words = String(fullName || "").split(/\s+/).filter(Boolean);
+  const rest = words.filter((w, i) => !(i === 0 && HONORIFICS.has(w.replace(/\.$/, "").toLowerCase())));
+  return rest.length ? rest : words;                  // a title and nothing else
+}
+
+export function firstNameOf(fullName) {
+  return nameParts(fullName)[0] || "";
+}
+
+export function initialsOf(fullName) {
+  return nameParts(fullName).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+}
+
+/* The dashboard a signed-in person belongs on. Decided by role alone: being an
+ * administrator is an extra power, not a different identity, so an admin still
+ * lands on their own view and reaches the admin one from the sidebar. */
+export function homeFor(session) {
+  return session.role === "parent" ? "parent.html"
+       : session.role === "teacher" ? "teacher.html"
+       : "portal.html";
+}
+
 /**
  * Returns { session, student } on success, or null after having already
  * written the response.
@@ -19,7 +53,8 @@ export async function requireStudent(req, res) {
   if (session.role !== "student") {
     json(res, 403, {
       error: "wrong_portal",
-      message: "This page is for students. A parent and staff view is not built yet.",
+      message: "This page is for pupils. Your own dashboard is a click away.",
+      home: homeFor(session),
     });
     return null;
   }
@@ -40,12 +75,12 @@ export async function requireStudent(req, res) {
 /** Identity block every section page shows in its header. */
 export function studentSummary(session, student) {
   return {
+    isAdmin: Boolean(session.is_admin),
     fullName: session.full_name,
-    firstName: (student.other_names || session.full_name).split(/\s+/)[0],
+    firstName: firstNameOf(student.other_names || session.full_name),
     admissionNo: student.admission_no,
     className: student.class_level + (student.class_arm || ""),
-    initials: session.full_name.split(/\s+/).filter(Boolean).slice(0, 2)
-      .map((p) => p[0].toUpperCase()).join(""),
+    initials: initialsOf(session.full_name),
   };
 }
 
