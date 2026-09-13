@@ -21,7 +21,16 @@ Open `index.html` in a browser and it works.
 | `contact.html` | Contact details, enquiry form, department directory, visiting information |
 | `signup.html` | Create a portal account, checked against the school register |
 | `login.html` | Sign in to the portal |
-| `portal.html` | Student dashboard, behind the login |
+| `portal.html` | Student dashboard |
+| `portal-profile.html` | The pupil's school record and subjects |
+| `portal-classes.html` | Weekly timetable, one tab per day |
+| `portal-assignments.html` | All assignments, filterable by status |
+| `portal-results.html` | Subject scores with WAEC grades |
+| `portal-attendance.html` | Attendance totals and recent days |
+| `portal-messages.html` | Inbox; opening a message marks it read |
+| `portal-calendar.html` | Term dates and announcements |
+| `portal-resources.html` | Learning materials |
+| `portal-settings.html` | Change password, account details |
 
 ## Structure
 
@@ -39,7 +48,8 @@ Open `index.html` in a browser and it works.
 ├── api/
 │   ├── _lib/                     # db, crypto, http, validation, rate limiting, sessions
 │   ├── auth/                     # signup, login, logout, me
-│   └── portal/                   # dashboard
+│   └── portal/                   # dashboard, classes, assignments, results,
+│                                 #   attendance, messages, profile, password, demo
 ├── db/
 │   ├── schema.sql                # accounts, sessions, register
 │   ├── portal-schema.sql         # timetable, assignments, results, attendance
@@ -220,7 +230,7 @@ export DATABASE_URL="postgres://user:pass@localhost:5432/bfss"
 npm run db:setup     # create the tables (accounts + portal)
 npm run db:demo      # optional: demo register, timetable, results and attendance
 npm run dev          # http://localhost:3000
-npm test             # 96 tests, needs DATABASE_URL
+npm test             # 96 API tests, needs DATABASE_URL
 ```
 
 With `db:demo` loaded, sign up as **Daniel James**, admission number `BFS/2024/0178`,
@@ -269,28 +279,52 @@ return 503 with a "contact the school office" message, rather than pretending to
 | `/api/auth/login` | POST | Email and password, sets the session cookie |
 | `/api/auth/logout` | POST | Revokes the session server-side and clears the cookie |
 | `/api/auth/me` | GET | The signed-in user, or 401 |
-| `/api/portal/dashboard` | GET | Everything the student dashboard shows, for the signed-in pupil |
+| `/api/portal/dashboard` | GET | Everything the dashboard shows, for the signed-in pupil |
+| `/api/portal/classes` | GET | The week's timetable for their class |
+| `/api/portal/assignments` | GET | Assignments with this pupil's submitted state |
+| `/api/portal/results` | GET | Subject scores and the overall average |
+| `/api/portal/attendance` | GET | Attendance totals and recent days |
+| `/api/portal/messages` | GET, POST | The inbox; POST `{id}` marks one read |
+| `/api/portal/profile` | GET | Their record, guardian contacts and subjects |
+| `/api/portal/password` | POST | Change password; ends every other session |
+| `/api/portal/demo` | GET | Sample student for the preview; no database, no sign-in |
 
-### The dashboard
+### The portal pages
 
-`portal.html` is the student dashboard. It fetches `/api/portal/dashboard` once and renders
-the lot: the term and days remaining, today's timetable, assignments with their submitted
-state, per-subject results with an overall average, attendance totals, announcements and
-the unread message count.
+Ten pages share one shell (`assets/js/portal.js` reads `body[data-portal-page]`, fetches
+that section once and renders it), so the sidebar, top bar and identity block are defined
+in a single place.
 
 Everything is keyed on the `register_id` attached to the session, never on anything in the
-request, so a pupil can only ever load their own record. Signing out revokes the session
-server-side. A parent or staff account gets a 403 rather than a pupil's dashboard, because
-those views are not built yet.
+request, so a pupil can only ever load their own record. Marking a message read carries the
+same condition, so passing another pupil's message id simply matches no row. Signing out
+revokes the session server-side, and changing your password ends every other session.
+A parent or staff account gets a 403 rather than a pupil's pages, because those views are
+not built yet.
 
-Sidebar entries for pages that do not exist yet (My Profile, Messages, Resources, Settings)
-are shown greyed with a "Soon" tag and are deliberately not links, rather than pointing at
-a page that is not there.
+Grades on the results page follow the WAEC scale (A1 75+, B2 70-74, B3 65-69, C4 60-64,
+C5 55-59, C6 50-54, D7 45-49, E8 40-44, F9 below 40).
+
+### Demo preview
+
+Add `?demo=1` to any portal page to see it with a fixed sample student, with no account and
+no database:
+
+```
+https://your-site.vercel.app/portal.html?demo=1
+```
+
+It reads `/api/portal/demo`, which never touches the database, so it works on a deployment
+that has no `DATABASE_URL` yet. Every page carries a banner saying it is a preview, the flag
+follows you as you move around the sidebar, and changing a password is refused. It exists so
+the school can see the portal before their register is loaded.
 
 ### Still to do
 
-- **Only the student dashboard exists.** Parent and staff views, and the pages behind the
-  other sidebar entries, are not built.
+- **Only the student view exists.** Parent and staff portals are not built; those accounts
+  can sign in but get a 403 on portal pages.
+- **Portal search does nothing**, and there is no way to hand work in or reply to a message
+  from the portal. Each page says so where it applies.
 - **No password reset.** The login page tells students to ask their form teacher and
   everyone else to email ICT. A self-service reset needs email or SMS sending.
 - **No "Continue with Google".** It was left off deliberately rather than shipped as a

@@ -337,3 +337,110 @@ body[data-page="portal"] { background: var(--portal-bg); }
   .donut__value, .bar-row__fill { transition: none; }
   .spinner { animation: none; }
 }
+
+/* ==========================================================================
+   Section pages
+   ========================================================================== */
+
+.demo-banner {
+  display: flex; align-items: flex-start; gap: .65rem;
+  background: #fff6e5; border: 1px solid #f3d9a4; color: #7a5312;
+  border-radius: var(--card-radius); padding: .8rem 1rem; margin-bottom: 1.1rem;
+  font-size: .87rem; line-height: 1.5;
+}
+.demo-banner svg { width: 18px; height: 18px; flex: none; margin-top: .15rem; }
+.demo-banner a { color: #7a5312; font-weight: 700; text-decoration: underline; }
+
+.page-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: 1.1rem;
+}
+.page-head h1 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.85rem); margin: 0 0 .2rem; }
+.page-head p { margin: 0; color: var(--muted); font-size: .92rem; }
+.head-chip {
+  display: inline-flex; align-items: center; gap: .45rem;
+  background: #fff; border: 1px solid var(--line); border-radius: 999px;
+  padding: .45rem .9rem; font-family: var(--font-head); font-weight: 700;
+  font-size: .85rem; color: var(--navy-800);
+}
+.head-chip svg { width: 16px; height: 16px; color: var(--blue-600); }
+
+/* --- chips (day tabs, filters) ------------------------------------------ */
+.day-tabs, .filter-chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+.chip {
+  border: 1px solid var(--line); background: #fff; color: var(--body);
+  border-radius: 999px; padding: .5rem 1rem; cursor: pointer;
+  font-family: var(--font-head); font-weight: 600; font-size: .85rem;
+}
+.chip:hover { border-color: var(--blue-500); color: var(--blue-700); }
+.chip.is-on { background: var(--blue-600); border-color: var(--blue-600); color: #fff; }
+.chip span { opacity: .75; margin-left: .25rem; font-weight: 700; }
+
+/* --- fact lists ---------------------------------------------------------- */
+.fact-list { display: grid; gap: 0; }
+.fact-list li {
+  display: flex; align-items: baseline; gap: 1rem;
+  padding: .7rem 0; font-size: .88rem; color: var(--muted);
+}
+.fact-list li + li { border-top: 1px solid var(--line); }
+.fact-list b {
+  margin-left: auto; text-align: right; font-family: var(--font-head);
+  font-weight: 700; color: var(--ink); overflow-wrap: anywhere;
+}
+
+/* --- pills --------------------------------------------------------------- */
+.pill-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+.pill {
+  background: var(--blue-50); border: 1px solid var(--blue-100); color: var(--blue-700);
+  border-radius: 999px; padding: .4rem .85rem;
+  font-family: var(--font-head); font-weight: 600; font-size: .82rem;
+}
+
+/* --- attendance records -------------------------------------------------- */
+.record { display: flex; align-items: center; gap: .8rem; padding: .7rem 0; }
+.record + .record { border-top: 1px solid var(--line); }
+.record__date { flex: 1; font-size: .88rem; color: var(--body); }
+
+/* --- messages ------------------------------------------------------------ */
+.message + .message { border-top: 1px solid var(--line); }
+.message__head {
+  display: flex; align-items: center; gap: .8rem; width: 100%;
+  background: none; border: 0; padding: .85rem 0; cursor: pointer; text-align: left;
+}
+.message__head:hover .message__who strong { color: var(--blue-600); }
+.message__who { flex: 1; min-width: 0; }
+.message__who strong {
+  display: block; font-family: var(--font-head); font-size: .9rem; color: var(--ink);
+}
+.message__subject { display: block; font-size: .82rem; color: var(--muted); }
+.message__when { font-size: .76rem; color: var(--muted); flex: none; }
+.message__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--blue-600); flex: none; }
+.message.is-unread .message__who strong { color: var(--navy-900); }
+.message.is-unread .message__subject { color: var(--body); font-weight: 600; }
+.message__body {
+  padding: 0 0 1rem 0; font-size: .88rem; color: var(--body); line-height: 1.6;
+}
+.message__body p { margin: 0; }
+
+/* --- resources ----------------------------------------------------------- */
+.res-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; margin-bottom: 1.1rem; }
+.res-card {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--card-radius);
+  padding: 1.25rem; box-shadow: 0 1px 3px rgba(16,34,63,.05);
+  transition: transform .15s ease, box-shadow .15s ease;
+  display: flex; flex-direction: column;
+}
+.res-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.res-card__icon {
+  width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center;
+  color: #fff; margin-bottom: .8rem;
+}
+.res-card__icon svg { width: 21px; height: 21px; }
+.res-card h3 { font-size: 1rem; margin: 0 0 .35rem; }
+.res-card p { font-size: .84rem; color: var(--muted); margin: 0 0 .9rem; line-height: 1.5; flex: 1; }
+
+@media (max-width: 1180px) { .res-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px)  { .res-grid { grid-template-columns: 1fr; } }
+
+/* Section pages reuse the two-column grid without an aside on most pages. */
+.portal-main > [data-dash] > .portal-grid { margin-top: 0; }
