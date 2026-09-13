@@ -21,6 +21,7 @@ Open `index.html` in a browser and it works.
 | `contact.html` | Contact details, enquiry form, department directory, visiting information |
 | `signup.html` | Create a portal account, checked against the school register |
 | `login.html` | Sign in to the portal |
+| `portal.html` | Student dashboard, behind the login |
 
 ## Structure
 
@@ -31,19 +32,25 @@ Open `index.html` in a browser and it works.
 │   ├── css/style.css             # design tokens + all component styles
 │   ├── css/auth.css              # sign-in / sign-up layout
 │   ├── js/main.js                # nav, search, carousels, counters, forms
+│   ├── css/portal.css            # dashboard layout
 │   ├── js/auth.js                # role tabs, validation, calls the auth API
+│   ├── js/portal.js              # renders the dashboard
 │   └── img/                      # photography + favicon
 ├── api/
 │   ├── _lib/                     # db, crypto, http, validation, rate limiting, sessions
-│   └── auth/                     # signup, login, logout, me
+│   ├── auth/                     # signup, login, logout, me
+│   └── portal/                   # dashboard
 ├── db/
-│   ├── schema.sql                # tables and indexes
-│   ├── demo-register.sql         # demo rows for trying the portal
+│   ├── schema.sql                # accounts, sessions, register
+│   ├── portal-schema.sql         # timetable, assignments, results, attendance
+│   ├── demo-register.sql         # demo register rows
+│   ├── demo-portal.sql           # demo timetable, results and attendance
 │   └── sample-register.csv       # the CSV shape the importer expects
 ├── scripts/
 │   ├── dev-server.mjs            # static files + /api routes, for local work
 │   ├── import-register.mjs       # spreadsheet CSV -> register table
-│   └── test-auth.mjs             # 65 end-to-end auth tests
+│   ├── test-auth.mjs             # 65 end-to-end auth tests
+│   └── test-portal.mjs           # 31 dashboard tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -210,14 +217,16 @@ npm install
 # any PostgreSQL will do
 export DATABASE_URL="postgres://user:pass@localhost:5432/bfss"
 
-npm run db:setup     # create the tables
-npm run db:demo      # optional: demo register rows to try it with
+npm run db:setup     # create the tables (accounts + portal)
+npm run db:demo      # optional: demo register, timetable, results and attendance
 npm run dev          # http://localhost:3000
-npm test             # 65 auth tests, needs DATABASE_URL
+npm test             # 96 tests, needs DATABASE_URL
 ```
 
-With `db:demo` loaded you can sign up as student `BFS/2025/0142`, surname Okafor, class
-SS2; or as a teacher with `BFS/STF/014`, surname Ogun, using the staff email on file.
+With `db:demo` loaded, sign up as **Daniel James**, admission number `BFS/2024/0178`,
+class SS2, to see the dashboard with data in it. Other demo accounts: student
+`BFS/2025/0142` (surname Okafor, SS2), or teacher `BFS/STF/014` (surname Ogun, using the
+staff email on file).
 
 ### Loading the real register from the spreadsheet
 
@@ -260,12 +269,28 @@ return 503 with a "contact the school office" message, rather than pretending to
 | `/api/auth/login` | POST | Email and password, sets the session cookie |
 | `/api/auth/logout` | POST | Revokes the session server-side and clears the cookie |
 | `/api/auth/me` | GET | The signed-in user, or 401 |
+| `/api/portal/dashboard` | GET | Everything the student dashboard shows, for the signed-in pupil |
+
+### The dashboard
+
+`portal.html` is the student dashboard. It fetches `/api/portal/dashboard` once and renders
+the lot: the term and days remaining, today's timetable, assignments with their submitted
+state, per-subject results with an overall average, attendance totals, announcements and
+the unread message count.
+
+Everything is keyed on the `register_id` attached to the session, never on anything in the
+request, so a pupil can only ever load their own record. Signing out revokes the session
+server-side. A parent or staff account gets a 403 rather than a pupil's dashboard, because
+those views are not built yet.
+
+Sidebar entries for pages that do not exist yet (My Profile, Messages, Resources, Settings)
+are shown greyed with a "Soon" tag and are deliberately not links, rather than pointing at
+a page that is not there.
 
 ### Still to do
 
-- **There is no portal behind the login yet.** Signing in sets a valid session and returns
-  the user, then lands back on the homepage. The pages that show results, attendance and
-  timetables are the next piece of work.
+- **Only the student dashboard exists.** Parent and staff views, and the pages behind the
+  other sidebar entries, are not built.
 - **No password reset.** The login page tells students to ask their form teacher and
   everyone else to email ICT. A self-service reset needs email or SMS sending.
 - **No "Continue with Google".** It was left off deliberately rather than shipped as a

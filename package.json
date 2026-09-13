@@ -4,13 +4,17 @@
   "private": true,
   "description": "Website and portal authentication for Bright Future Secondary School",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
-    "db:setup": "psql \"$DATABASE_URL\" -f db/schema.sql",
-    "db:demo": "psql \"$DATABASE_URL\" -f db/demo-register.sql",
+    "db:setup": "psql \"$DATABASE_URL\" -f db/schema.sql && psql \"$DATABASE_URL\" -f db/portal-schema.sql",
+    "db:demo": "psql \"$DATABASE_URL\" -f db/demo-register.sql && psql \"$DATABASE_URL\" -f db/demo-portal.sql",
     "import:register": "node scripts/import-register.mjs",
-    "test": "node scripts/test-auth.mjs"
+    "test": "node scripts/test-auth.mjs && node scripts/test-portal.mjs",
+    "test:auth": "node scripts/test-auth.mjs",
+    "test:portal": "node scripts/test-portal.mjs"
   },
   "dependencies": {
     "pg": "^8.13.1"

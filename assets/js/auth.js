@@ -175,10 +175,13 @@
 
   function afterAuth(form, user, verb) {
     showAlert(form, verb + ", " + (user.fullName || "") + ". Taking you to the portal…", "ok");
-    // No portal pages exist yet, so land somewhere useful rather than a 404.
+    // Only same-site paths are followed, so ?next= cannot bounce anyone off-site.
     var next = new URLSearchParams(location.search).get("next");
+    var safe = next && /^\/[^/\\]/.test(next) ? next : null;
+    // The dashboard is the student view; everyone else lands on the site for now.
+    var fallback = user.role === "student" ? "portal.html" : "index.html";
     window.setTimeout(function () {
-      window.location.href = next && next.charAt(0) === "/" ? next : "index.html";
+      window.location.href = safe || fallback;
     }, 1200);
   }
 
