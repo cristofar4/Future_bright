@@ -84,6 +84,18 @@ CREATE TABLE IF NOT EXISTS announcements (
 );
 CREATE INDEX IF NOT EXISTS announcements_published_idx ON announcements (published_on DESC);
 
+-- Who put a notice on the board, and when. Worth recording once notices can be
+-- written from the portal rather than only loaded as fixture data.
+--
+-- The author is the name as it was at the time, not a reference to the account.
+-- Who posted a notice is a fact about the past: closing someone's account should
+-- not quietly unsign everything they ever wrote. It also keeps announcements out
+-- of the blast radius of TRUNCATE users CASCADE, which a foreign key here would
+-- silently pull the whole notice board into.
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS author     TEXT;
+
 -- --- Messages -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS messages (
   id           BIGSERIAL PRIMARY KEY,

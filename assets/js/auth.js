@@ -42,10 +42,21 @@
   }
 
   /* --- messages --------------------------------------------------------- */
+  /* Good news and bad news should not wear the same face: the box is coloured
+     for the outcome, so the icon in it has to agree. */
+  function alertIcon(box, kind) {
+    var mark = box.querySelector("svg");
+    if (!mark) { return; }
+    mark.innerHTML = kind === "ok"
+      ? '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+      : '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4h.01"/>';
+  }
+
   function showAlert(form, message, kind) {
     var box = document.querySelector("[data-alert]");
     if (!box) { return; }
     box.className = "auth-alert auth-alert--" + (kind || "error") + " is-shown";
+    alertIcon(box, kind);
     var text = box.querySelector("[data-alert-text]");
     if (text) { text.textContent = message; }
     box.scrollIntoView({ block: "nearest", behavior: "smooth" });

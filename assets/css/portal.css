@@ -630,3 +630,66 @@ body[data-page="portal"] { background: var(--portal-bg); }
   .person__meta { display: none; }
   .list-count { margin-left: 0; width: 100%; }
 }
+
+/* ==========================================================================
+   The notice board, as an administrator writes it
+   ========================================================================== */
+.compose { display: grid; gap: 0; }
+.compose .field { margin-bottom: .9rem; }
+.compose textarea { min-height: 8.5rem; resize: vertical; }
+.compose__row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.1rem; }
+.compose__acts { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-top: .2rem; }
+.compose__count { margin-left: auto; font-size: .78rem; color: var(--muted); }
+.compose__count.is-over { color: var(--pink); font-weight: 700; }
+
+.notice-admin { display: flex; align-items: flex-start; gap: .85rem; padding: .95rem 0; }
+.notice-admin + .notice-admin { border-top: 1px solid var(--line); }
+.notice-admin.is-editing { background: var(--blue-50); border-radius: 10px; padding-left: .6rem; padding-right: .6rem; }
+.notice-admin__what { flex: 1; min-width: 0; }
+.notice-admin__what strong {
+  display: block; font-family: var(--font-head); font-size: .95rem; color: var(--ink);
+  margin-bottom: .2rem; overflow-wrap: anywhere;
+}
+.notice-admin__what p {
+  margin: 0 0 .45rem; font-size: .86rem; color: var(--body); line-height: 1.55;
+  overflow-wrap: anywhere; white-space: pre-wrap;
+}
+.notice-admin__meta {
+  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+  font-size: .78rem; color: var(--muted);
+}
+.notice-admin__acts { display: flex; align-items: center; gap: .4rem; flex: none; }
+.notice-admin__acts .btn { padding: .35rem .75rem; font-size: .78rem; }
+
+/* Who a notice is for. */
+.aud-pill {
+  display: inline-block; border-radius: 999px; padding: .2rem .6rem;
+  font-family: var(--font-head); font-weight: 700; font-size: .72rem;
+  border: 1px solid transparent;
+}
+.aud-pill--all      { background: var(--blue-50); border-color: var(--blue-100); color: var(--blue-700); }
+.aud-pill--students { background: #f3edff;        border-color: #ded0ff;         color: #5a32b0; }
+.aud-pill--parents  { background: #e8f7ef;        border-color: #c7ecd7;         color: #1c7a45; }
+.aud-pill--staff    { background: #fff2e0;        border-color: #f6d9ae;         color: #94560d; }
+
+/* A notice dated ahead of today is not on the board yet. */
+.sched-pill {
+  display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px;
+  padding: .2rem .6rem; font-family: var(--font-head); font-weight: 700; font-size: .72rem;
+  background: #fff6e5; border: 1px solid #f3d9a4; color: #7a5312;
+}
+.sched-pill svg { width: 12px; height: 12px; }
+
+/* Taking a notice down asks first, in place. */
+.confirm-line {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  background: #fdeaee; border: 1px solid #f6c3ce; color: #8d1830;
+  border-radius: 10px; padding: .55rem .75rem; font-size: .83rem; margin-top: .5rem;
+}
+.confirm-line .btn { padding: .3rem .7rem; font-size: .76rem; }
+
+@media (max-width: 620px) {
+  .compose__row { grid-template-columns: 1fr; }
+  .notice-admin { flex-wrap: wrap; }
+  .notice-admin__acts { width: 100%; }
+}

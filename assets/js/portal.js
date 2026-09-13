@@ -135,7 +135,7 @@
   /* Which object in the payload describes the person signed in. A parent page
      is headed by the parent, not by the child it is about. */
   var IDENTITY = { parent: "parent", teacher: "teacher", admin: "admin",
-                   pupils: "admin", staff: "admin" };
+                   pupils: "admin", staff: "admin", notices: "admin" };
 
   function applyIdentity(data) {
     var key = IDENTITY[PAGE] || "student";
@@ -413,6 +413,216 @@
       line.appendChild(el("span", "acct-row__when",
         row.last_login_at ? "Seen " + whenSent(row.last_login_at) : "Never signed in"));
       host.appendChild(line);
+    });
+  }
+
+  /* --- the notice board -------------------------------------------------- */
+
+  var AUDIENCE_LABEL = { all: "Everyone", students: "Pupils", parents: "Parents", staff: "Staff" };
+
+  /* Redrawn from the payload every write returns, so the board on screen is
+     always the board in the database rather than a guess at it. */
+  function renderNoticeBoard(d) {
+    var host = document.querySelector("[data-notices]");
+    var list = d.announcements || [];
+    clear(host);
+
+    if (!list.length) {
+      host.appendChild(el("p", "empty-line",
+        "Nothing is on the board. Write the first notice above."));
+      return;
+    }
+
+    list.forEach(function (row) {
+      var item = el("div", "notice-admin");
+      item.setAttribute("data-notice", row.id);
+
+      var when = new Date(row.published_on);
+      var date = el("span", "note__date");
+      date.appendChild(el("span", "note__mon", isNaN(when) ? "" : MONTHS[when.getMonth()]));
+      date.appendChild(el("span", "note__day", isNaN(when) ? "" : when.getDate()));
+      item.appendChild(date);
+
+      var what = el("span", "notice-admin__what");
+      what.appendChild(el("strong", null, row.title));
+      what.appendChild(el("p", null, row.body));
+
+      var meta = el("span", "notice-admin__meta");
+      meta.appendChild(el("span", "aud-pill aud-pill--" + row.audience,
+        AUDIENCE_LABEL[row.audience] || row.audience));
+      if (row.scheduled) {
+        var sched = el("span", "sched-pill");
+        sched.innerHTML = svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5.3l3.3 2"/>');
+        sched.appendChild(document.createTextNode("Goes up " + shortDate(row.published_on)));
+        meta.appendChild(sched);
+      }
+      meta.appendChild(el("span", null, row.author ? "by " + row.author : "by the school office"));
+      if (row.updated_at) { meta.appendChild(el("span", null, "edited " + whenSent(row.updated_at))); }
+      what.appendChild(meta);
+      item.appendChild(what);
+
+      var acts = el("span", "notice-admin__acts");
+      var edit = el("button", "btn btn--sm btn--outline", "Edit");
+      edit.type = "button";
+      edit.addEventListener("click", function () { fillNoticeForm(row); });
+      acts.appendChild(edit);
+
+      var del = el("button", "btn btn--sm btn--outline", "Delete");
+      del.type = "button";
+      del.addEventListener("click", function () { askToDelete(item, row); });
+      acts.appendChild(del);
+      item.appendChild(acts);
+
+      host.appendChild(item);
+    });
+  }
+
+  /* Taking a notice down is the one thing here that cannot be undone, so it
+     asks first, in place, rather than trusting a stray click. */
+  function askToDelete(item, row) {
+    if (item.querySelector(".confirm-line")) { return; }
+    var line = el("div", "confirm-line");
+    line.appendChild(el("span", null, "Take \u201c" + row.title + "\u201d down for good?"));
+    var yes = el("button", "btn btn--sm", "Yes, delete it");
+    yes.type = "button";
+    var no = el("button", "btn btn--sm btn--outline", "Keep it");
+    no.type = "button";
+    no.addEventListener("click", function () { line.remove(); });
+    yes.addEventListener("click", function () {
+      yes.setAttribute("aria-busy", "true");
+      sendNotice("DELETE", "/api/portal/announcements?id=" + encodeURIComponent(row.id));
+    });
+    line.appendChild(yes);
+    line.appendChild(no);
+    item.querySelector(".notice-admin__what").appendChild(line);
+  }
+
+  function noticeForm() { return document.querySelector("[data-notice-form]"); }
+
+  function fillNoticeForm(row) {
+    var form = noticeForm();
+    form.elements.id.value = row.id;
+    form.elements.title.value = row.title;
+    form.elements.body.value = row.body;
+    form.elements.audience.value = row.audience;
+    form.elements.publishedOn.value = String(row.published_on).slice(0, 10);
+    setAll("[data-compose-title]", "Edit a Notice");
+    setAll("[data-submit-text]", "Save changes");
+    document.querySelector("[data-cancel]").hidden = false;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-notice]"), function (n) {
+      n.classList.toggle("is-editing", n.getAttribute("data-notice") === String(row.id));
+    });
+    countNoticeBody();
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+    form.elements.title.focus({ preventScroll: true });
+  }
+
+  function resetNoticeForm() {
+    var form = noticeForm();
+    form.reset();
+    form.elements.id.value = "";
+    setAll("[data-compose-title]", "Write a Notice");
+    setAll("[data-submit-text]", "Post it");
+    document.querySelector("[data-cancel]").hidden = true;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-notice]"), function (n) {
+      n.classList.remove("is-editing");
+    });
+    clearNoticeErrors();
+    countNoticeBody();
+  }
+
+  function clearNoticeErrors() {
+    var form = noticeForm();
+    Array.prototype.forEach.call(form.querySelectorAll("[data-error-for]"), function (n) {
+      n.textContent = "";
+    });
+    Array.prototype.forEach.call(form.querySelectorAll(".field"), function (n) {
+      n.classList.remove("has-error");
+    });
+  }
+
+  function noticeAlert(message, tone) {
+    var box = document.querySelector("[data-alert]");
+    box.className = "auth-alert auth-alert--" + (tone || "error") + " is-shown";
+    // The box is coloured for the outcome, so the icon in it has to agree.
+    var mark = box.querySelector("svg");
+    if (mark) {
+      mark.innerHTML = tone === "ok"
+        ? '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+        : '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4h.01"/>';
+    }
+    box.querySelector("[data-alert-text]").textContent = message;
+  }
+
+  function countNoticeBody() {
+    var body = noticeForm().elements.body;
+    var left = 4000 - body.value.length;
+    var note = document.querySelector("[data-body-count]");
+    note.textContent = left < 400 ? left + " characters left" : "";
+    note.classList.toggle("is-over", left < 0);
+  }
+
+  async function sendNotice(method, url, payload) {
+    var form = noticeForm();
+    var button = form.querySelector("[data-submit]");
+    button.setAttribute("aria-busy", "true");
+    clearNoticeErrors();
+    document.querySelector("[data-alert]").classList.remove("is-shown");
+    try {
+      var res = await fetch(url, {
+        method: method,
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: payload === undefined ? undefined : JSON.stringify(payload),
+      });
+      var data = await res.json().catch(function () { return {}; });
+
+      if (res.status === 401) { window.location.replace("login.html"); return; }
+      if (!res.ok) {
+        if (data.field) {
+          var slot = form.querySelector('[data-error-for="' + data.field + '"]');
+          if (slot) {
+            slot.textContent = data.message;
+            slot.closest(".field").classList.add("has-error");
+          }
+        }
+        noticeAlert(data.message || "That did not work. Please try again.", "error");
+        return;
+      }
+
+      applyIdentity(data);
+      RENDER.notices(data);
+      resetNoticeForm();
+      noticeAlert(data.message || "Saved.", "ok");
+    } catch (err) {
+      noticeAlert("We could not reach the server. Please try again.", "error");
+    } finally {
+      button.setAttribute("aria-busy", "false");
+    }
+  }
+
+  function initNoticeForm() {
+    var form = noticeForm();
+    if (!form) { return; }
+
+    form.elements.body.addEventListener("input", countNoticeBody);
+    document.querySelector("[data-cancel]").addEventListener("click", resetNoticeForm);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (DEMO) {
+        noticeAlert("This is a preview, so nothing is written. Sign in as an administrator to post.", "error");
+        return;
+      }
+      var id = form.elements.id.value;
+      var payload = {
+        title: form.elements.title.value,
+        body: form.elements.body.value,
+        audience: form.elements.audience.value,
+        publishedOn: form.elements.publishedOn.value,
+      };
+      if (id) { payload.id = Number(id); }
+      sendNotice(id ? "PATCH" : "POST", "/api/portal/announcements", payload);
     });
   }
 
@@ -892,6 +1102,20 @@
       document.title = "Staff | Bright Future Secondary School";
     },
 
+    /* --- the notice board ------------------------------------------------ */
+    notices: function (d) {
+      var t = d.totals || {};
+      setKpi("total", t.total || 0);
+      setKpi("scheduled", t.scheduled || 0);
+      setKpi("everyone", t.everyone || 0);
+      setKpi("mine", (d.announcements || []).filter(function (a) {
+        return a.author && a.author === (d.admin && d.admin.fullName);
+      }).length);
+
+      renderNoticeBoard(d);
+      document.title = "Announcements | Bright Future Secondary School";
+    },
+
     /* --- administrator: the school, by its numbers ---------------------- */
     admin: function (d) {
       var t = d.totals || {};
@@ -973,7 +1197,7 @@
     results: "results", attendance: "attendance", messages: "messages",
     profile: "profile", calendar: "dashboard", resources: "profile", settings: "profile",
     parent: "parent", teacher: "teacher", admin: "admin",
-    pupils: "pupils", staff: "staff",
+    pupils: "pupils", staff: "staff", notices: "announcements",
   };
 
   // Search, class, status and page live in the page's own address, so a result
@@ -1188,6 +1412,7 @@
   async function boot() {
     initChrome();
     initPasswordForm();
+    initNoticeForm();
 
     try {
       var res = await fetch(apiUrl(ENDPOINT[PAGE] || "dashboard"), { credentials: "same-origin" });

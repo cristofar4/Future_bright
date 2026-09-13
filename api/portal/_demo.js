@@ -275,6 +275,30 @@ export function demoPayload(section) {
       };
     }
 
+    case "announcements": {
+      const ADMIN = { isAdmin: true, fullName: "Dr. Emeka Anyanwu", firstName: "Emeka",
+                      initials: "EA", email: "principal@brightfuture.edu.ng", role: "teacher" };
+      const day = (n) => new Date(Date.now() + n * 86400e3).toISOString().slice(0, 10);
+      return {
+        ...base,
+        admin: ADMIN,
+        announcements: [
+          { id: 9, title: "Mid-term break", body: "School closes on Friday and reopens the following Wednesday. Buses run as normal on both days.",
+            published_on: day(6), audience: "all", author: "Dr. Emeka Anyanwu",
+            created_at: new Date(Date.now() - 3600e3).toISOString(), updated_at: null, scheduled: true },
+          ...ANNOUNCEMENTS.map((a, i) => ({
+            ...a, audience: ["all", "students", "parents", "staff"][i % 4],
+            author: i % 2 ? "Mrs. Folake Ogun" : "Dr. Emeka Anyanwu",
+            created_at: a.published_on, updated_at: i === 1 ? new Date(Date.now() - 26 * 3600e3).toISOString() : null,
+            scheduled: false,
+          })),
+        ],
+        totals: { total: 5, scheduled: 1, everyone: 2 },
+        audiences: ["all", "students", "parents", "staff"],
+        limits: { title: 120, body: 4000 },
+      };
+    }
+
     default:
       return base;
   }

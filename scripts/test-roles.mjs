@@ -304,6 +304,121 @@ console.log("\nthe staff register");
   check("POST is rejected", post.status === 405, String(post.status));
 }
 
+/* ---------------------------------------------------------- the notice board */
+console.log("\nthe notice board");
+{
+  const post = (body) => call("/api/portal/announcements", { method: "POST", body, cookie: admin.cookie });
+  const today = new Date().toISOString().slice(0, 10);
+  const plus = (n) => new Date(Date.now() + n * 86400e3).toISOString().slice(0, 10);
+
+  let r = await call("/api/portal/announcements", { cookie: admin.cookie });
+  check("the board loads for an administrator", r.status === 200, `${r.status} ${r.body.message || ""}`);
+  check("notices are listed newest first",
+    r.body.announcements.every((a, i, all) => i === 0 || a.published_on <= all[i - 1].published_on));
+  check("the audiences on offer are the ones the column allows",
+    JSON.stringify(r.body.audiences) === JSON.stringify(["all", "students", "parents", "staff"]));
+  const started = r.body.totals.total;
+
+  r = await post({ title: "Founders Day", body: "Parents are welcome from 10am.", audience: "parents" });
+  check("a notice can be posted", r.status === 200 && r.body.ok === true, `${r.status} ${r.body.message || ""}`);
+  check("it says it is up now", r.body.message.includes("on the board now"), r.body.message);
+  check("the board comes back with it", r.body.totals.total === started + 1);
+  const mine = r.body.announcements.find((a) => a.title === "Founders Day");
+  check("posted to the audience given", mine?.audience === "parents", mine?.audience);
+  check("dated today by default", String(mine?.published_on).slice(0, 10) === today,
+    String(mine?.published_on));
+  check("and credited to whoever wrote it", mine?.author === "Dr. Folake Ogun", mine?.author);
+  check("not marked as scheduled", mine?.scheduled === false);
+
+  // Only the audience it was written for should be able to see it.
+  const onParentBoard = await call("/api/portal/parent", { cookie: parent.cookie });
+  check("a parent sees a notice written for parents",
+    onParentBoard.body.announcements.some((a) => a.title === "Founders Day"));
+  const onPupilBoard = await call("/api/portal/dashboard", { cookie: pupil.cookie });
+  check("a pupil does not", !onPupilBoard.body.announcements.some((a) => a.title === "Founders Day"));
+
+  /* --- what it refuses ------------------------------------------------- */
+  const bad = [
+    [{ title: "Hi", body: "Long enough body here." }, "title", "a title under three characters"],
+    [{ title: "A".repeat(121), body: "Long enough body here." }, "title", "a title over the limit"],
+    [{ title: "A fine title", body: "x" }, "body", "an empty notice"],
+    [{ title: "A fine title", body: "B".repeat(4001) }, "body", "a notice over the limit"],
+    [{ title: "A fine title", body: "Long enough body here.", audience: "governors" }, "audience", "an audience that does not exist"],
+    [{ title: "A fine title", body: "Long enough body here.", publishedOn: "13/09/2026" }, "publishedOn", "a date in the wrong shape"],
+    [{ title: "A fine title", body: "Long enough body here.", publishedOn: "2026-02-31" }, "publishedOn", "a date that does not exist"],
+  ];
+  for (const [body, field, what] of bad) {
+    const out = await post(body);
+    check(`${what} is refused`, out.status === 400 && out.body.field === field,
+      `${out.status} ${out.body.field || ""}`);
+  }
+  const after = await call("/api/portal/announcements", { cookie: admin.cookie });
+  check("and none of them got onto the board", after.body.totals.total === started + 1,
+    `${after.body.totals.total}`);
+
+  /* --- scheduling ------------------------------------------------------ */
+  r = await post({ title: "Speech Day", body: "Full uniform, please.", audience: "all", publishedOn: plus(6) });
+  check("a notice can be dated ahead", r.status === 200 && r.body.message.includes("goes on the board"),
+    r.body.message);
+  const sched = r.body.announcements.find((a) => a.title === "Speech Day");
+  check("and is marked scheduled", sched?.scheduled === true);
+  check("scheduled ones are counted apart", r.body.totals.scheduled >= 1);
+
+  const pupilNow = await call("/api/portal/dashboard", { cookie: pupil.cookie });
+  check("nobody sees it before its date",
+    !pupilNow.body.announcements.some((a) => a.title === "Speech Day"),
+    pupilNow.body.announcements.map((a) => a.title).join(", "));
+
+  // Dating it today should put it up immediately.
+  r = await call("/api/portal/announcements", { method: "PATCH", cookie: admin.cookie,
+    body: { id: Number(sched.id), title: "Speech Day", body: "Full uniform, please.",
+            audience: "all", publishedOn: today } });
+  check("moving the date forward publishes it", r.status === 200, `${r.status}`);
+  const pupilAfter = await call("/api/portal/dashboard", { cookie: pupil.cookie });
+  check("and now a pupil sees it",
+    pupilAfter.body.announcements.some((a) => a.title === "Speech Day"));
+
+  /* --- editing and deleting -------------------------------------------- */
+  r = await call("/api/portal/announcements", { method: "PATCH", cookie: admin.cookie,
+    body: { id: Number(mine.id), title: "Founders Day (moved)", body: "Now the last Friday of term.",
+            audience: "all" } });
+  check("a notice can be edited", r.status === 200 && r.body.ok === true, `${r.status}`);
+  const edited = r.body.announcements.find((a) => a.id === mine.id);
+  check("the change stuck", edited?.title === "Founders Day (moved)" && edited?.audience === "all");
+  check("and it records that it was edited", Boolean(edited?.updated_at));
+  check("editing does not move the date when none is given",
+    String(edited?.published_on).slice(0, 10) === today, String(edited?.published_on));
+
+  const nope = await call("/api/portal/announcements", { method: "PATCH", cookie: admin.cookie,
+    body: { id: 99999999, title: "Nowhere", body: "Nothing to edit.", audience: "all" } });
+  check("editing one that is not there is a plain 404", nope.status === 404, `${nope.status}`);
+
+  r = await call(`/api/portal/announcements?id=${mine.id}`, { method: "DELETE", cookie: admin.cookie });
+  check("a notice can be taken down", r.status === 200 && r.body.ok === true, `${r.status}`);
+  check("it says which one", r.body.message.includes("Founders Day (moved)"), r.body.message);
+  check("and it is gone", !r.body.announcements.some((a) => a.id === mine.id));
+
+  const gone = await call(`/api/portal/announcements?id=${mine.id}`, { method: "DELETE", cookie: admin.cookie });
+  check("deleting it twice is a plain 404, not a crash", gone.status === 404, `${gone.status}`);
+  const silly = await call("/api/portal/announcements?id=nonsense", { method: "DELETE", cookie: admin.cookie });
+  check("a nonsense id is refused", silly.status === 400, `${silly.status}`);
+
+  /* --- who may write --------------------------------------------------- */
+  for (const [who, name] of [[pupil, "a pupil"], [parent, "a parent"], [teacher, "a teacher who is not an admin"]]) {
+    const tried = await call("/api/portal/announcements", { method: "POST", cookie: who.cookie,
+      body: { title: "No school tomorrow", body: "Signed, not the head.", audience: "all" } });
+    check(`${name} cannot post a notice`, tried.status === 403, `${tried.status}`);
+    const del = await call(`/api/portal/announcements?id=${sched.id}`, { method: "DELETE", cookie: who.cookie });
+    check(`${name} cannot take one down`, del.status === 403, `${del.status}`);
+  }
+  const anon = await call("/api/portal/announcements", { method: "POST",
+    body: { title: "No school tomorrow", body: "Signed, nobody.", audience: "all" } });
+  check("a stranger cannot post one", anon.status === 401, `${anon.status}`);
+
+  const wrongMethod = await call("/api/portal/announcements", { method: "PUT", cookie: admin.cookie, body: {} });
+  check("an unsupported method is refused", wrongMethod.status === 405, `${wrongMethod.status}`);
+}
+
 /* ------------------------------------------------- one dashboard per person */
 console.log("\neach role stays on its own dashboard");
 {
@@ -320,6 +435,7 @@ console.log("\neach role stays on its own dashboard");
     ["a pupil cannot read the staff list",      "/api/portal/staff",   pupil,   "portal.html"],
     ["a parent cannot read the roll",           "/api/portal/pupils",  parent,  "parent.html"],
     ["a teacher who is not an admin cannot either", "/api/portal/staff", teacher, "teacher.html"],
+    ["a pupil cannot read the notice board",    "/api/portal/announcements", pupil, "portal.html"],
     ["an administrator is not a parent",        "/api/portal/parent",  admin,   "teacher.html"],
   ];
   for (const [name, path, who, home] of cases) {
@@ -339,7 +455,8 @@ console.log("\neach role stays on its own dashboard");
 console.log("\ndemo preview, with no sign-in");
 {
   for (const [section, key] of [["parent", "child"], ["teacher", "classes"], ["admin", "totals"],
-                               ["pupils", "classes"], ["staff", "totals"]]) {
+                               ["pupils", "classes"], ["staff", "totals"],
+                               ["announcements", "totals"]]) {
     const r = await call(`/api/portal/demo?section=${section}`);
     check(`${section} preview loads`, r.status === 200, String(r.status));
     check(`${section} preview is labelled a demo`, r.body.demo === true);

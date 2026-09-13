@@ -71,7 +71,8 @@ export default portalRoute(async function (req, res) {
     ),
     query(
       `SELECT id, title, body, published_on FROM announcements
-        WHERE audience IN ('all', 'staff') ORDER BY published_on DESC LIMIT 4`
+        WHERE audience IN ('all', 'staff') AND published_on <= current_date
+        ORDER BY published_on DESC LIMIT 4`
     ),
     query(
       `SELECT (SELECT count(DISTINCT s.name)::int

@@ -28,6 +28,7 @@ Open `index.html` in a browser and it works.
 | `admin.html` | Admin dashboard: the roll, the staff list, portal accounts, sign-up state |
 | `admin-pupils.html` | The roll: search, filter by class, open one pupil's whole record |
 | `admin-staff.html` | The staff register: search, open one member of staff and what they teach |
+| `admin-notices.html` | The notice board: write, edit, schedule and take down announcements |
 | `portal-profile.html` | The pupil's school record and subjects |
 | `portal-classes.html` | Weekly timetable, one tab per day |
 | `portal-assignments.html` | All assignments, filterable by status |
@@ -58,7 +59,8 @@ Open `index.html` in a browser and it works.
 │   ├── portal/[section].js       # one function for every /api/portal/* route
 │   └── portal/_routes/           # dashboard, classes, assignments, results, attendance,
 │                                 #   messages, profile, password, demo,
-│                                 #   parent, teacher, admin, pupils, staff
+│                                 #   parent, teacher, admin, pupils, staff,
+│                                 #   announcements
 ├── db/
 │   ├── schema.sql                # accounts, sessions, register
 │   ├── portal-schema.sql         # timetable, assignments, results, attendance
@@ -75,7 +77,7 @@ Open `index.html` in a browser and it works.
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
 │   ├── test-portal.mjs           # 31 pupil dashboard tests
 │   ├── test-signup-mode.mjs      # 25 open/closed sign-up tests
-│   └── test-roles.mjs            # 175 parent / teacher / admin tests
+│   └── test-roles.mjs            # 224 parent / teacher / admin tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -285,7 +287,7 @@ npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
 npm run check        # deployment checks, no database needed
-npm test             # checks + 296 API tests, needs DATABASE_URL
+npm test             # checks + 345 API tests, needs DATABASE_URL
 npm run test:roles   # just the parent, teacher and admin dashboards
 ```
 
@@ -404,6 +406,7 @@ specifically rather than letting it look like an unreachable host.
 | `/api/portal/admin` | GET | School-wide totals, roll by class, newest accounts |
 | `/api/portal/pupils` | GET | The roll, searchable and by class; `?id=` for one record |
 | `/api/portal/staff` | GET | The staff register, searchable; `?id=` for one record |
+| `/api/portal/announcements` | GET, POST, PATCH, DELETE | The notice board. The only endpoint that writes school content |
 | `/api/portal/classes` | GET | The week's timetable for their class |
 | `/api/portal/assignments` | GET | Assignments with this pupil's submitted state |
 | `/api/portal/results` | GET | Subject scores and the overall average |
@@ -445,6 +448,30 @@ address, so a result can be linked to and the back button does what it looks lik
 
 Both are gated on `users.is_admin`, both return names, roles and sign-in times only, and a
 search term is always a parameter rather than something concatenated into the SQL.
+
+### Announcements
+
+`admin-notices.html` is the first page in the portal that **writes**. An administrator can
+post a notice, edit it, date it ahead, and take it down.
+
+**Who sees it** is part of writing it: everyone, pupils, parents or staff. Each dashboard
+reads only the audiences that apply to it, so "parents only" really is only parents.
+
+**A date ahead of today is scheduled, not published.** Every reader query filters on
+`published_on <= current_date`, so "put this up on Monday" does not put it up today. The
+board marks those, and counts them separately.
+
+**Taking one down asks first**, in place, because it is the one thing here that cannot be
+undone.
+
+The author is stored as the name at the time, not a reference to the account. Who posted a
+notice is a fact about the past: closing someone's account should not quietly unsign
+everything they wrote, and a foreign key here would pull the whole notice board into the
+blast radius of `TRUNCATE users CASCADE`.
+
+There is no CSRF token, because there is nothing for one to add: the session cookie is
+`SameSite=Lax`, so it is not sent on a cross-site POST at all, and the body must be JSON,
+which a plain cross-site form cannot send.
 
 Opening someone else's dashboard returns 403 with the address of your own, and the page
 offers a button straight to it rather than a dead end.
@@ -517,12 +544,13 @@ the school can see the portal before their register is loaded.
 
 ### Still to do
 
-- **Some deeper sections are not built.** Classes, Portal Accounts and Announcements for an
-  administrator, and take a register, enter results and fees for staff and parents; those
-  sidebar items are labelled "Soon" rather than linking nowhere. Messages and settings are
-  pupil-only for now.
-- **Nothing writes back yet.** A teacher cannot mark a register or enter a score from the
-  portal, and an administrator cannot edit an account. Every dashboard is read-only.
+- **Some deeper sections are not built.** Classes and Portal Accounts for an administrator,
+  and take a register, enter results and fees for staff and parents; those sidebar items
+  are labelled "Soon" rather than linking nowhere. Messages and settings are pupil-only for
+  now.
+- **Almost nothing writes back yet.** Announcements are the exception. A teacher still
+  cannot mark a register or enter a score from the portal, and an administrator cannot edit
+  an account or a pupil's record.
 - **Portal search does nothing**, and there is no way to hand work in or reply to a message
   from the portal. Each page says so where it applies.
 - **No password reset.** The login page tells students to ask their form teacher and

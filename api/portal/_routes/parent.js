@@ -74,7 +74,8 @@ export default portalRoute(async function (req, res) {
     ),
     query(
       `SELECT id, title, body, published_on FROM announcements
-        WHERE audience IN ('all', 'parents') ORDER BY published_on DESC LIMIT 4`
+        WHERE audience IN ('all', 'parents') AND published_on <= current_date
+        ORDER BY published_on DESC LIMIT 4`
     ),
   ]);
 

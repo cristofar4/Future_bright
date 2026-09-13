@@ -111,7 +111,7 @@ export default async function handler(req, res) {
     const { rows: announcements } = await query(
       `SELECT id, title, body, published_on
          FROM announcements
-        WHERE audience IN ('all', 'students')
+        WHERE audience IN ('all', 'students') AND published_on <= current_date
         ORDER BY published_on DESC
         LIMIT 4`
     );

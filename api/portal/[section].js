@@ -1,6 +1,7 @@
 /* One Serverless Function for every /api/portal/* route. See the note in
  * api/auth/[action].js for why these are collapsed. */
-import admin       from "./_routes/admin.js";
+import admin         from "./_routes/admin.js";
+import announcements from "./_routes/announcements.js";
 import assignments from "./_routes/assignments.js";
 import attendance  from "./_routes/attendance.js";
 import classes     from "./_routes/classes.js";
@@ -17,9 +18,9 @@ import teacher     from "./_routes/teacher.js";
 
 import { json } from "../_lib/http.js";
 
-const ROUTES = { admin, assignments, attendance, classes, dashboard, demo,
-                 messages, parent, password, profile, pupils, results, staff,
-                 teacher };
+const ROUTES = { admin, announcements, assignments, attendance, classes,
+                 dashboard, demo, messages, parent, password, profile, pupils,
+                 results, staff, teacher };
 
 export default async function handler(req, res) {
   const { pathname } = new URL(req.url, "http://localhost");

@@ -8,7 +8,7 @@ import { demoPayload } from "../_demo.js";
 
 const SECTIONS = ["dashboard", "classes", "assignments", "results", "attendance",
                   "messages", "profile", "calendar", "parent", "teacher", "admin",
-                  "pupils", "staff"];
+                  "pupils", "staff", "announcements"];
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
