@@ -61,7 +61,8 @@ Open `index.html` in a browser and it works.
 │   ├── schema.sql                # accounts, sessions, register
 │   ├── portal-schema.sql         # timetable, assignments, results, attendance
 │   ├── demo-register.sql         # demo register rows
-│   ├── demo-portal.sql           # demo timetable, results and attendance
+│   ├── demo-portal.sql           # demo timetable, results and attendance, for
+│   │                             #   every class and every pupil on the register
 │   └── sample-register.csv       # the CSV shape the importer expects
 ├── scripts/
 │   ├── dev-server.mjs            # static files + /api routes, for local work
@@ -72,7 +73,7 @@ Open `index.html` in a browser and it works.
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
 │   ├── test-portal.mjs           # 31 pupil dashboard tests
 │   ├── test-signup-mode.mjs      # 25 open/closed sign-up tests
-│   └── test-roles.mjs            # 113 parent / teacher / admin tests
+│   └── test-roles.mjs            # 124 parent / teacher / admin tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -282,7 +283,7 @@ npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
 npm run check        # deployment checks, no database needed
-npm test             # checks + 234 API tests, needs DATABASE_URL
+npm test             # checks + 245 API tests, needs DATABASE_URL
 npm run test:roles   # just the parent, teacher and admin dashboards
 ```
 
@@ -461,6 +462,21 @@ with a link to clear it.
 
 No password is stored, because nothing checks one. This is a way to look around before
 committing to a database, not an account system: real accounts need `DATABASE_URL`.
+
+### Sample data
+
+`npm run db:demo`, or the **Load sample data** button on `setup.html`, fills in a timetable,
+homework, results, attendance and announcements so the dashboards have something to show
+before a real register exists.
+
+It covers **every class** (the six standard levels, plus any class already on the register)
+and **every pupil**, not just the one pupil from the design. Someone who signs up and only
+then presses the button still lands on a full dashboard: without that, their class was one
+the fixture had never heard of and every card came up empty.
+
+It refuses once a real register has been **imported** — not merely once the register has
+rows. Creating an account while sign-up is open puts a row in the register, and guarding on
+"empty" meant the first person through the door locked the sample data behind themselves.
 
 ### Demo preview
 

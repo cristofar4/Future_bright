@@ -341,6 +341,57 @@ console.log("\nwhere the connection string is read from");
   Object.assign(process.env, saved);
 }
 
+/* ------------------------- the order someone actually does things in --------- */
+console.log("\nsigning up before loading the sample data");
+{
+  // A fresh site: tables, no data. Exactly what pressing "Create the tables"
+  // leaves behind.
+  await query(`TRUNCATE sessions, auth_attempts, users, register, staff_register,
+                        subject_results, attendance, assignment_submissions, messages,
+                        timetable, assignments, announcements
+               RESTART IDENTITY CASCADE`);
+
+  const pupil = await signup({
+    role: "student", fullName: "Praise Christopher", email: "praise@example.com",
+    phone: "08012341234", reference: "BFS/2026/0001", classLevel: "SS3",
+  });
+  check("a pupil can sign up on an empty database", pupil.status === 201,
+    `${pupil.status} ${pupil.body.message || ""}`);
+
+  let dash = await call("/api/portal/dashboard", { cookie: pupil.cookie });
+  check("their dashboard loads, with nothing on it yet",
+    dash.status === 200 && dash.body.today.length === 0, `${dash.status}`);
+
+  // Guarding the sample data on "the register is empty" meant this refused:
+  // their own sign-up had put a row in it, so the one button that would fill
+  // the dashboard was locked behind the act of creating an account.
+  const seeded = await call("/api/auth/seed", { method: "POST" });
+  check("the sample data still loads after a sign-up",
+    seeded.status === 200, `${seeded.status} ${seeded.body.message || ""}`);
+
+  dash = await call("/api/portal/dashboard", { cookie: pupil.cookie });
+  check("their class has a timetable, though the fixture never heard of them",
+    dash.body.today.length === 5, `${dash.body.today?.length}`);
+  check("homework is set for their class", dash.body.assignments.length === 4,
+    `${dash.body.assignments?.length}`);
+  check("one piece of work is marked handed in",
+    dash.body.assignments.filter((a) => a.submitted).length === 1);
+  check("results are published for them", dash.body.results.length === 5,
+    `${dash.body.results?.length}`);
+  check("an average is worked out", Number.isInteger(dash.body.average) && dash.body.average > 0,
+    `${dash.body.average}`);
+  check("attendance is recorded for them", dash.body.attendance.total === 49,
+    `${dash.body.attendance?.total}`);
+  check("and they have messages waiting", dash.body.unreadMessages === 3,
+    `${dash.body.unreadMessages}`);
+
+  // What the guard is actually for: a school's own register, once imported.
+  await query("UPDATE register SET source = 'import'");
+  const again = await call("/api/auth/seed", { method: "POST" });
+  check("an imported register does still lock the sample data",
+    again.status === 409, `${again.status} ${again.body.message || ""}`);
+}
+
 /* ------------------------------------------- a connection string pg cannot use */
 console.log("\na proxy connection string is named as the problem");
 {

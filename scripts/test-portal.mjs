@@ -130,8 +130,33 @@ console.log("\naccess control");
   r = await call("/api/portal/dashboard", { cookie: other.cookie });
   check("second pupil sees their own record", r.status === 200 && r.body.student.admissionNo === "BFS/2025/0142",
     r.body?.student?.admissionNo);
-  check("second pupil sees none of Daniel's results", r.body.results.length === 0, `${r.body?.results?.length}`);
-  check("second pupil sees none of Daniel's attendance", r.body.attendance.total === 0);
+
+  /* The sample data now covers every pupil, so "sees nothing" no longer proves
+     isolation. Compare against exactly the rows the database holds for THIS
+     pupil instead: handing back another pupil's would fail. */
+  const { rows: theirs } = await query(
+    `SELECT s.name AS subject, sr.score::float AS score
+       FROM subject_results sr
+       JOIN subjects s ON s.id = sr.subject_id
+       JOIN register r ON r.id = sr.register_id
+      WHERE upper(replace(r.admission_no,' ','')) = 'BFS/2025/0142'
+      ORDER BY sr.score DESC`
+  );
+  check("second pupil sees exactly their own results, not Daniel's",
+    JSON.stringify(r.body.results) === JSON.stringify(theirs),
+    `${JSON.stringify(r.body.results)} vs ${JSON.stringify(theirs)}`);
+
+  const { rows: att } = await query(
+    `SELECT count(*)::int AS total
+       FROM attendance a JOIN register r ON r.id = a.register_id
+      WHERE upper(replace(r.admission_no,' ','')) = 'BFS/2025/0142'`
+  );
+  check("second pupil's attendance is their own rows",
+    r.body.attendance.total === att[0].total && att[0].total > 0,
+    `${r.body.attendance.total} vs ${att[0].total}`);
+
+  // Messages belong to a user account, and the fixture ran before this one
+  // existed, so there is genuinely nothing here for them.
   check("second pupil has no unread messages", r.body.unreadMessages === 0);
 
   // A parent account is a different portal.
