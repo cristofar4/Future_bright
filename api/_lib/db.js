@@ -37,8 +37,26 @@ const valueOf = (name) => String(process.env[name] || "").trim();
  * nothing usable is set does this fall back to whatever was set first, so the
  * setup page can name the variable it had to reject.
  */
+/* Vercel prefixes an integration's variables when the plain name is already
+ * taken, so a second database can land as NEON_DATABASE_URL rather than
+ * DATABASE_URL. Look for those too, but only by name: a variable has to be
+ * called something_DATABASE_URL or something_POSTGRES_URL to be considered, so
+ * this never goes fishing through the environment for anything that happens to
+ * look like a connection string. Sorted, so the choice does not depend on the
+ * order the platform happened to set them in. */
+function discoveredVars() {
+  return Object.keys(process.env)
+    .filter((name) => !URL_VARS.includes(name))
+    .filter((name) => /(DATABASE|POSTGRES)_URL/.test(name))
+    // POSTGRES_URL_NO_SSL is a real Postgres URL, but reaching a hosted
+    // database with TLS off is not something to fall into by accident.
+    .filter((name) => !/_NO_SSL$/.test(name))
+    .filter(valueOf)
+    .sort();
+}
+
 export function databaseUrlVar() {
-  const set = URL_VARS.filter(valueOf);
+  const set = URL_VARS.filter(valueOf).concat(discoveredVars());
   return set.find((name) => isDirectPostgresUrl(valueOf(name))) || set[0] || null;
 }
 

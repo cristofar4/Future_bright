@@ -299,6 +299,44 @@ console.log("\nwhere the connection string is read from");
   check("with nothing usable, the one that was set is still named",
     databaseUrlVar() === "DATABASE_URL", String(databaseUrlVar()));
 
+  // Vercel prefixes an integration's variables when the plain name is taken, so
+  // a second database attached to the same project lands as NEON_DATABASE_URL.
+  const prefixed = ["NEON_DATABASE_URL", "STORAGE_POSTGRES_URL", "POSTGRES_URL_NO_SSL"];
+  const wipe = () => { clear(); prefixed.forEach((k) => delete process.env[k]); };
+
+  wipe();
+  process.env.DATABASE_URL = "prisma+postgres://accelerate.prisma-data.net/?api_key=ey";
+  process.env.NEON_DATABASE_URL = "postgres://x@y/z";
+  check("a prefixed name is found when the plain one is unusable",
+    databaseUrlVar() === "NEON_DATABASE_URL", String(databaseUrlVar()));
+
+  wipe();
+  process.env.DATABASE_URL = "postgres://a@b/c";
+  process.env.NEON_DATABASE_URL = "postgres://x@y/z";
+  check("a documented name still wins over a discovered one",
+    databaseUrlVar() === "DATABASE_URL", String(databaseUrlVar()));
+
+  wipe();
+  process.env.NEON_DATABASE_URL = "postgres://x@y/z";
+  process.env.STORAGE_POSTGRES_URL = "postgres://q@r/s";
+  check("two discovered names resolve the same way every time",
+    databaseUrlVar() === "NEON_DATABASE_URL", String(databaseUrlVar()));
+
+  // TLS off against a hosted database is not something to fall into by accident.
+  wipe();
+  process.env.POSTGRES_URL_NO_SSL = "postgres://x@y/z";
+  check("POSTGRES_URL_NO_SSL is not picked up on its own",
+    databaseUrlVar() === null, String(databaseUrlVar()));
+
+  // Only names that say so count: nothing else in the environment is read.
+  wipe();
+  process.env.SOME_OTHER_THING = "postgres://x@y/z";
+  check("an unrelated variable holding a URL is ignored",
+    databaseUrlVar() === null, String(databaseUrlVar()));
+  delete process.env.SOME_OTHER_THING;
+
+  wipe();
+
   clear();
   Object.assign(process.env, saved);
 }
