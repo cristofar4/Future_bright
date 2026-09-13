@@ -206,7 +206,8 @@
     if (!mode.configured) {
       note.innerHTML = "<strong>The portal is not connected to a database yet.</strong> " +
         "Sign-up will not work until one is attached. " +
-        '<a href="portal.html?demo=1">Open the demo preview</a> to see the portal in the meantime.';
+        '<a href="setup.html">See what is missing</a>, or ' +
+        '<a href="portal.html?demo=1">open the demo preview</a> in the meantime.';
       note.hidden = false;
       if (registerNote) { registerNote.hidden = true; }
       return;

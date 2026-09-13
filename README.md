@@ -21,6 +21,7 @@ Open `index.html` in a browser and it works.
 | `contact.html` | Contact details, enquiry form, department directory, visiting information |
 | `signup.html` | Create a portal account, checked against the school register |
 | `login.html` | Sign in to the portal |
+| `setup.html` | Setup status: what is working, what is not, what to do next |
 | `portal.html` | Student dashboard |
 | `portal-profile.html` | The pupil's school record and subjects |
 | `portal-classes.html` | Weekly timetable, one tab per day |
@@ -230,6 +231,11 @@ You need a PostgreSQL database. Without one the site still serves, but sign-up a
 portal return 503 with a "contact the school office" message rather than pretending to
 work. There is no way around this: accounts have to live somewhere.
 
+**Stuck? Open `/setup.html` on the deployed site.** It checks each piece in turn (API
+deployed, database connected, tables created) and names the next action. It reports only
+whether each piece is in place, never the connection string and nothing about who is on the
+register.
+
 **On Vercel, from nothing to a working sign-up:**
 
 1. Create a free Postgres. Any works; Neon (neon.tech) and Supabase both have a free tier,
@@ -247,7 +253,8 @@ work. There is no way around this: accounts have to live somewhere.
    npm run db:status    # confirms what is connected and whether sign-up is open
    ```
 
-4. Go to `/signup.html` and create your account. Any admission number works, see below.
+4. Open `/setup.html` to confirm all three checks are green, then `/signup.html` to create
+   your account. Any admission number works, see below.
 
 `db:setup` and `db:demo` run through the `pg` driver, so the `psql` command-line client is
 not required.

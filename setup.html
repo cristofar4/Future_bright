@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal Setup | Bright Future Secondary School</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a2452">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  body { background: var(--soft); }
+  .setup { max-width: 44rem; margin-inline: auto; padding: clamp(1.5rem, 5vw, 3.5rem) 20px; }
+  .setup__brand { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.6rem; }
+  .setup__brand svg { width: 42px; height: 46px; flex: none; }
+  .setup__brand span { font-family: var(--font-head); font-weight: 800; font-size: 1.02rem; line-height: 1.2; color: var(--navy-900); }
+  .setup h1 { font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.1rem); margin-bottom: .3rem; }
+  .setup > p.lead { color: var(--muted); margin-bottom: 1.6rem; }
+
+  .setup-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 1.3rem; margin-bottom: 1.1rem; }
+  .checks { display: grid; gap: .9rem; }
+  .check { display: flex; gap: .8rem; align-items: flex-start; }
+  .check__mark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #fff; }
+  .check__mark svg { width: 15px; height: 15px; }
+  .check--ok  .check__mark { background: var(--green); }
+  .check--bad .check__mark { background: var(--pink); }
+  .check__text strong { display: block; font-family: var(--font-head); font-size: .95rem; color: var(--ink); }
+  .check__text span { font-size: .87rem; color: var(--muted); line-height: 1.5; }
+
+  .setup-advice { border-radius: 14px; padding: 1.2rem 1.3rem; margin-bottom: 1.2rem; }
+  .setup-advice h2 { font-size: 1.05rem; margin-bottom: .4rem; }
+  .setup-advice p { margin: 0; font-size: .9rem; line-height: 1.6; }
+  .setup-advice--todo { background: #fff6e5; border: 1px solid #f3d9a4; color: #6b4a10; }
+  .setup-advice--todo h2 { color: #6b4a10; }
+  .setup-advice--ok { background: #e7f7ee; border: 1px solid #b6e4ca; color: #12663c; }
+  .setup-advice--ok h2 { color: #12663c; }
+
+  .setup-note { font-size: .82rem; color: var(--muted); line-height: 1.6; margin-top: 1.4rem; }
+  .setup-note code { background: #fff; border: 1px solid var(--line); border-radius: 5px; padding: .1rem .35rem; font-size: .95em; }
+  .setup-loading { color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main class="setup">
+  <a class="setup__brand" href="index.html">
+    <svg viewBox="0 0 40 44" aria-hidden="true">
+      <path d="M20 1.2 38.2 6.6v15.6c0 10.4-7.3 17.6-18.2 20.6C9.1 39.8 1.8 32.6 1.8 22.2V6.6z" fill="#0a2452"/>
+      <path d="M20 4.6 34.9 9v13c0 8.6-6 14.8-14.9 17.4C11.1 36.8 5.1 30.6 5.1 22V9z" fill="#1a6fe0"/>
+      <path d="M20 11.4 28.8 15 20 18.6 11.2 15z" fill="#fff"/>
+      <path d="M13.6 17.2v4.6c0 1.9 2.9 3.2 6.4 3.2s6.4-1.3 6.4-3.2v-4.6L20 20z" fill="#fff" opacity=".92"/>
+    </svg>
+    <span>Bright Future<br>Secondary School</span>
+  </a>
+
+  <h1>Portal Setup</h1>
+  <p class="lead">What is working, what is not, and what to do next.</p>
+
+  <div class="setup-advice setup-advice--todo" data-advice>
+    <h2>Checking&hellip;</h2>
+    <p>Reading the portal status.</p>
+  </div>
+
+  <div class="setup-card">
+    <ul class="checks" data-steps>
+      <li class="setup-loading">Checking&hellip;</li>
+    </ul>
+  </div>
+
+  <p data-actions></p>
+
+  <p class="setup-note">
+    This page reads <code>/api/auth/mode</code>, which reports only whether each piece is in
+    place. It never shows the connection string, and it says nothing about who is on the
+    school register. Reload after changing anything on Vercel: environment variables only
+    take effect on a new deployment.
+  </p>
+</main>
+
+<script src="assets/js/setup.js"></script>
+</body>
+</html>
