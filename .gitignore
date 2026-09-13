@@ -8,3 +8,17 @@ Thumbs.db
 # Local tooling
 node_modules/
 .cache/
+
+# Node
+node_modules/
+npm-debug.log*
+# package-lock.json IS committed: deploys must install the versions we tested
+
+# Local environment
+.env
+.env.local
+.vercel/
+
+# Register exports - real student data must never be committed
+*.csv
+!db/sample-register.csv

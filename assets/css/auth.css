@@ -1,0 +1,178 @@
+/* ==========================================================================
+   Sign-in and sign-up pages. Loaded after style.css, reuses its tokens.
+   ========================================================================== */
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: 46fr 54fr;
+  min-height: 100vh;
+  background: var(--soft);
+}
+
+/* --- Left panel ---------------------------------------------------------- */
+.auth-aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(2rem, 4vw, 3.5rem);
+  overflow: hidden;
+  background: var(--navy-900);
+  color: #fff;
+}
+.auth-aside__media { position: absolute; inset: 0; }
+.auth-aside__media img { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; }
+.auth-aside__media::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(130% 100% at 18% 8%, rgba(26,111,224,.48) 0%, rgba(26,111,224,0) 62%),
+    linear-gradient(172deg, rgba(10,36,82,.84) 0%, rgba(12,44,100,.68) 42%, rgba(10,36,82,.9) 100%);
+}
+.auth-aside__inner { position: relative; z-index: 2; max-width: 30rem; }
+
+.auth-brand { display: flex; align-items: center; gap: .8rem; margin-bottom: clamp(1.8rem, 5vh, 3.2rem); }
+.auth-brand svg { width: 52px; height: 57px; flex: none; }
+.auth-brand__name {
+  display: block; font-family: var(--font-head); font-weight: 800;
+  font-size: 1.32rem; line-height: 1.18; color: #fff;
+}
+.auth-brand__tag {
+  display: block; font-size: .78rem; font-weight: 600; font-style: italic;
+  color: #a9ccff; letter-spacing: .06em; margin-top: .2rem;
+}
+
+.auth-aside h1 { color: #fff; font-size: clamp(1.9rem, 1.2rem + 1.9vw, 2.7rem); margin-bottom: .9rem; }
+.auth-aside h1 .text-accent { color: #4a9bff; }
+.auth-aside > .auth-aside__inner > p { color: rgba(255,255,255,.85); font-size: 1rem; max-width: 26em; }
+
+.auth-perks { margin-top: clamp(1.4rem, 4vh, 2.4rem); display: grid; gap: 1rem; }
+.auth-perks li { display: flex; align-items: center; gap: .85rem; font-size: .93rem; color: rgba(255,255,255,.92); }
+.auth-perks span {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff;
+  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+}
+.auth-perks svg { width: 18px; height: 18px; }
+
+/* --- Right panel --------------------------------------------------------- */
+.auth-main {
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(1.25rem, 3vw, 3rem);
+}
+.auth-card {
+  width: 100%; max-width: 43rem;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 20px; box-shadow: var(--shadow-lg);
+  padding: clamp(1.5rem, 3vw, 2.6rem);
+}
+.auth-card--narrow { max-width: 27rem; }
+
+.auth-switch { text-align: right; font-size: .87rem; color: var(--muted); margin-bottom: 1rem; }
+.auth-switch a { font-weight: 700; }
+
+.auth-card h2 { font-size: clamp(1.5rem, 1.1rem + 1.3vw, 2rem); margin-bottom: .35rem; }
+.auth-card > p.auth-sub { color: var(--muted); font-size: .95rem; margin-bottom: 1.5rem; }
+
+/* --- Role tabs (real radios, styled as a segmented control) --------------- */
+.role-tabs {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+  background: var(--blue-50); border: 1px solid var(--blue-100);
+  border-radius: 14px; padding: 5px; margin-bottom: 1.5rem;
+}
+.role-tabs input { position: absolute; opacity: 0; pointer-events: none; }
+.role-tabs label {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .75rem .5rem; border-radius: 10px; cursor: pointer;
+  font-family: var(--font-head); font-weight: 700; font-size: .92rem;
+  color: var(--muted); transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.role-tabs label svg { width: 18px; height: 18px; }
+.role-tabs label:hover { color: var(--blue-700); }
+.role-tabs input:checked + label { background: var(--blue-600); color: #fff; box-shadow: var(--shadow-sm); }
+.role-tabs input:focus-visible + label { outline: 3px solid var(--blue-500); outline-offset: 2px; }
+
+/* --- Fields -------------------------------------------------------------- */
+.auth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.1rem; }
+.auth-grid .field--full { grid-column: 1 / -1; }
+
+.field label { display: flex; align-items: center; gap: .45rem; }
+.field label svg { width: 16px; height: 16px; color: var(--blue-600); flex: none; }
+
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-wrap > svg {
+  position: absolute; left: .85rem; width: 17px; height: 17px;
+  color: var(--muted); pointer-events: none;
+}
+.input-wrap input,
+.input-wrap select { padding-left: 2.5rem; }
+.input-wrap select { appearance: none; background-image: none; }
+.input-wrap .select-caret {
+  position: absolute; right: .9rem; width: 14px; height: 14px;
+  color: var(--muted); pointer-events: none;
+}
+
+.peek {
+  position: absolute; right: .5rem; display: grid; place-items: center;
+  width: 34px; height: 34px; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.peek:hover { background: var(--blue-50); color: var(--blue-600); }
+.peek svg { width: 18px; height: 18px; }
+
+.field-error { display: block; font-size: .78rem; font-weight: 600; color: var(--pink); margin-top: .3rem; min-height: 1em; }
+.field.has-error input,
+.field.has-error select { border-color: var(--pink); }
+.field.has-error input:focus,
+.field.has-error select:focus { box-shadow: 0 0 0 3px rgba(232,56,94,.18); }
+
+.pw-hint { font-size: .78rem; color: var(--muted); margin: -.5rem 0 1rem; }
+
+/* --- Form-level messages ------------------------------------------------- */
+.auth-alert {
+  display: none; gap: .6rem; align-items: flex-start;
+  padding: .85rem 1rem; border-radius: var(--radius); margin-bottom: 1.1rem;
+  font-size: .88rem; font-weight: 500; line-height: 1.5;
+}
+.auth-alert.is-shown { display: flex; }
+.auth-alert svg { width: 18px; height: 18px; flex: none; margin-top: .12rem; }
+.auth-alert--error { background: #fdeaee; border: 1px solid #f6c3ce; color: #8d1830; }
+.auth-alert--ok    { background: #e7f7ee; border: 1px solid #b6e4ca; color: #12663c; }
+
+.btn[aria-busy="true"] { opacity: .72; pointer-events: none; }
+
+.auth-terms { font-size: .78rem; color: var(--muted); text-align: center; margin: 1.1rem 0 0; }
+.auth-back { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; font-weight: 600; margin-top: 1.2rem; }
+.auth-back svg { width: 14px; height: 14px; }
+
+.auth-note {
+  margin-top: 1.2rem; padding: .8rem .95rem; border-radius: var(--radius);
+  background: var(--soft); border: 1px solid var(--line);
+  font-size: .8rem; color: var(--muted); line-height: 1.55;
+}
+.auth-note strong { color: var(--ink); }
+
+/* --- Responsive ---------------------------------------------------------- */
+@media (max-width: 980px) {
+  .auth-shell { grid-template-columns: 1fr; min-height: 0; }
+  .auth-aside { padding: 1.6rem 1.25rem 1.8rem; }
+  .auth-aside__inner { max-width: none; }
+  .auth-aside h1 { font-size: clamp(1.5rem, 1.1rem + 2vw, 2rem); }
+  .auth-aside > .auth-aside__inner > p { font-size: .93rem; }
+  .auth-perks { grid-template-columns: 1fr 1fr; gap: .7rem; margin-top: 1.2rem; }
+  .auth-perks li { font-size: .82rem; gap: .6rem; }
+  .auth-perks span { width: 32px; height: 32px; }
+  .auth-perks svg { width: 15px; height: 15px; }
+  .auth-brand { margin-bottom: 1.3rem; }
+  .auth-brand svg { width: 42px; height: 46px; }
+  .auth-brand__name { font-size: 1.08rem; }
+  .auth-card { box-shadow: var(--shadow-md); }
+}
+
+@media (max-width: 620px) {
+  .auth-grid { grid-template-columns: 1fr; }
+  .auth-perks { grid-template-columns: 1fr; }
+  .role-tabs label { flex-direction: column; gap: .25rem; font-size: .8rem; padding: .6rem .3rem; }
+  .auth-main { padding: 1rem; }
+  .auth-card { border-radius: 16px; padding: 1.25rem 1.1rem 1.5rem; }
+}

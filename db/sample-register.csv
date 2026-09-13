@@ -1,0 +1,5 @@
+admission_no,surname,other_names,class_level,guardian_email,guardian_phone,status
+BFS/2025/0142,Okafor,Chidera Ada,SS2,amaka.okafor@example.com,+234 802 111 2233,active
+BFS/2025/0187,Bello,Ibrahim Musa,JSS2,amina.bello@example.com,08033445566,active
+BFS/2024/0091,Adeyemi,Tunde Samuel,SS3,,+234 805 777 8899,active
+BFS/2019/0007,Eze,Ngozi Grace,SS3,ngozi.eze@example.com,,left

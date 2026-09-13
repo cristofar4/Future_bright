@@ -201,6 +201,9 @@ ul { margin: 0; padding: 0; list-style: none; }
 .dropdown__menu a svg { width: 16px; height: 16px; color: var(--blue-600); }
 .dropdown__toggle svg:last-child { width: 12px; height: 12px; }
 
+.header-login { text-decoration: none; }
+.header-login svg { width: 15px; height: 15px; }
+
 .nav-toggle { display: none; }
 
 /* Search panel */
@@ -652,8 +655,8 @@ tbody tr:last-child td { border-bottom: 0; }
   .brand__mark { width: 34px; height: 38px; }
   .brand__name { font-size: .9rem; }
   .header-actions { gap: .2rem; }
-  .dropdown__toggle span { display: none; }
-  .dropdown__toggle { padding: .6rem .75rem; }
+  .header-login span { display: none; }
+  .header-login { padding: .6rem .75rem; }
 }
 
 @media (max-width: 480px) {

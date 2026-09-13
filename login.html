@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log In | Bright Future Secondary School</title>
+<meta name="description" content="Sign in to the Bright Future Secondary School student, parent and staff portal.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a2452">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/auth.css">
+</head>
+<body data-page="login">
+<a class="skip-link" href="#auth-form">Skip to the form</a>
+<div class="auth-shell">
+  <aside class="auth-aside">
+    <div class="auth-aside__media">
+      <img src="assets/img/hero-campus.png" alt="">
+    </div>
+    <div class="auth-aside__inner">
+      <a class="auth-brand" href="index.html">
+        <svg viewBox="0 0 40 44" aria-hidden="true">
+          <path d="M20 1.2 38.2 6.6v15.6c0 10.4-7.3 17.6-18.2 20.6C9.1 39.8 1.8 32.6 1.8 22.2V6.6z" fill="#0a2452"/>
+          <path d="M20 4.6 34.9 9v13c0 8.6-6 14.8-14.9 17.4C11.1 36.8 5.1 30.6 5.1 22V9z" fill="#1a6fe0"/>
+          <path d="M20 11.4 28.8 15 20 18.6 11.2 15z" fill="#fff"/>
+          <path d="M13.6 17.2v4.6c0 1.9 2.9 3.2 6.4 3.2s6.4-1.3 6.4-3.2v-4.6L20 20z" fill="#fff" opacity=".92"/>
+          <path d="M29.6 15.4v5.3" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>
+          <circle cx="29.6" cy="21.4" r="1.2" fill="#fff"/>
+          <path d="M14.6 28.6h10.8" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".75"/>
+        </svg>
+        <span>
+          <span class="auth-brand__name">Bright Future<br>Secondary School</span>
+          <span class="auth-brand__tag">Learn &bull; Grow &bull; Achieve</span>
+        </span>
+      </a>
+
+      <h1>Welcome Back to<br><span class="text-accent">Bright Future</span></h1>
+      <p>Sign in to check results and attendance, see the timetable, and keep up with everything happening at school.</p>
+
+      <ul class="auth-perks">
+        <li><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5L12 4l10 4.5-10 4.5z"/><path d="M6 11v4.6c0 1.6 2.7 2.9 6 2.9s6-1.3 6-2.9V11"/><path d="M21 9v5"/></svg></span>Results and continuous assessment</li>
+        <li><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>Timetables and exam dates</li>
+        <li><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span>Lesson notes and past questions</li>
+        <li><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8.8a6 6 0 10-12 0c0 6-2.2 7.4-2.2 7.4h16.4S18 14.8 18 8.8z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg></span>School announcements</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-card auth-card--narrow">
+      <p class="auth-switch">New here? <a href="signup.html">Create an account</a></p>
+
+      <h2>Log In</h2>
+      <p class="auth-sub">Welcome back. Please enter your details.</p>
+
+      <div class="auth-alert auth-alert--error" data-alert role="alert" aria-live="assertive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4h.01"/></svg><span data-alert-text></span>
+      </div>
+
+      <form id="auth-form" data-login-form novalidate>
+        <div class="field">
+          <label for="li-email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.4"/><path d="M3 7l9 6 9-6"/></svg>Email Address</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.4"/><path d="M3 7l9 6 9-6"/></svg>
+            <input id="li-email" name="email" type="email" autocomplete="email"
+                   placeholder="Enter your email address" required autofocus>
+          </div>
+          <span class="field-error" data-error-for="email"></span>
+        </div>
+
+        <div class="field">
+          <label for="li-pw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.2"/><path d="M8 10.5V7.6a4 4 0 018 0v2.9"/></svg>Password</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.2"/><path d="M8 10.5V7.6a4 4 0 018 0v2.9"/></svg>
+            <input id="li-pw" name="password" type="password" autocomplete="current-password"
+                   placeholder="Enter your password" required>
+            <button class="peek" type="button" data-peek="li-pw" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+          <span class="field-error" data-error-for="password"></span>
+        </div>
+
+        <button class="btn btn--block" type="submit" data-submit>
+          <span data-submit-text>Log In</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+
+      <p class="auth-note">
+        <strong>Forgotten your password?</strong>
+        Students should ask their form teacher. Parents and staff should email
+        <a href="mailto:ict@brightfuture.edu.ng">ict@brightfuture.edu.ng</a> or call the
+        school office on <a href="tel:+2348012345678">+234 801 234 5678</a>.
+      </p>
+
+      <a class="auth-back" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg> Back to the website</a>
+    </div>
+  </main>
+</div>
+<script src="assets/js/auth.js"></script>
+</body>
+</html>

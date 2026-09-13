@@ -19,6 +19,8 @@ Open `index.html` in a browser and it works.
 | `news.html` | News articles, upcoming events, newsletter sign-up |
 | `gallery.html` | Photo gallery and photography/consent information |
 | `contact.html` | Contact details, enquiry form, department directory, visiting information |
+| `signup.html` | Create a portal account, checked against the school register |
+| `login.html` | Sign in to the portal |
 
 ## Structure
 
@@ -27,10 +29,26 @@ Open `index.html` in a browser and it works.
 ├── index.html … contact.html     # 9 pages, each with the shared header/footer inlined
 ├── assets/
 │   ├── css/style.css             # design tokens + all component styles
-│   ├── js/main.js                # nav, search, dropdown, carousels, counters, forms
+│   ├── css/auth.css              # sign-in / sign-up layout
+│   ├── js/main.js                # nav, search, carousels, counters, forms
+│   ├── js/auth.js                # role tabs, validation, calls the auth API
 │   └── img/                      # photography + favicon
+├── api/
+│   ├── _lib/                     # db, crypto, http, validation, rate limiting, sessions
+│   └── auth/                     # signup, login, logout, me
+├── db/
+│   ├── schema.sql                # tables and indexes
+│   ├── demo-register.sql         # demo rows for trying the portal
+│   └── sample-register.csv       # the CSV shape the importer expects
+├── scripts/
+│   ├── dev-server.mjs            # static files + /api routes, for local work
+│   ├── import-register.mjs       # spreadsheet CSV -> register table
+│   └── test-auth.mjs             # 65 end-to-end auth tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
+
+The marketing pages are still plain static HTML with no build step. Only the portal
+needs Node and a database.
 
 ## Running it
 
@@ -91,9 +109,10 @@ reveal animations all stand down.
 
 These need a decision or a backend before the site goes live:
 
-1. **Forms are front-end only.** The application, contact and newsletter forms validate and
-   show a confirmation, but submit nowhere. Each one says so on the page. Point them at a
-   real endpoint (or a form service) when one exists.
+1. **The public forms are front-end only.** The application, contact and newsletter forms
+   validate and show a confirmation, but submit nowhere. Each one says so on the page.
+   Point them at a real endpoint (or a form service) when one exists. Sign-in and sign-up
+   are the exception: those are real, see "The portal" below.
 2. **Images are low-resolution.** The photography was extracted from the design mockup at
    thumbnail size (as small as 170x60), so it goes soft when scaled up. No code change can
    add detail back; the fix is real photographs. `hero-campus.png` and `about-campus.png`
@@ -141,79 +160,118 @@ These need a decision or a backend before the site goes live:
 4. **Contact page map** is a styled placeholder pending the school's exact coordinates.
 5. **Search** is a UI shell; it reports that lookup isn't connected yet.
 6. **Social and legal links** (`href="#"`) need real destinations.
-7. **There is no sign-in or account creation.** The header Login menu and both portal
-   sign-in forms were removed deliberately, so no visitor can create an account for
-   themselves. The Students and Parents pages now explain that portal accounts are issued
-   by the school office. Adding real accounts means adding a backend: see
-   "Portal accounts" below.
+7. **Sign-in and sign-up are built** and need a database to run. See "The portal" below
+   for setup, and for what is deliberately not included.
 
-## Portal accounts
+## The portal
 
-**Decision: the site ships with no sign-in and no sign-up.** Accounts are issued by the
-school office, and the Students and Parents pages say so. Everything below is the design
-to build against when a backend exists; nothing here is implemented yet.
+Sign-in and sign-up are built and working. The site stays static; the portal is four
+serverless functions under `api/` plus a PostgreSQL database.
 
-### Why there is no public sign-up
+### How sign-up is kept closed
 
-Self-registration on a school site has no way to tell an enrolled student from anyone else
-on the internet. The school already holds the authoritative answer in the admission
-register, so verification should start from that register rather than from a stranger's
-submission.
+Anyone can open the sign-up page, but an account is only created when the details match
+a row in the school register. That register is imported from the office spreadsheet, so
+the school decides who exists, not the form.
 
-A "sign up and upload a photo of yourself for an admin to approve" flow was considered and
-rejected:
+| Role | What must match |
+| --- | --- |
+| Student | Admission number exists and is `active`, the class chosen matches the register, and the surname on file appears in the name given |
+| Parent | The same admission number and class, **and** the email or phone entered is one already held for that child |
+| Teacher | Staff number exists and is `active`, surname matches, and where the school recorded an email for that member of staff, it is the one used |
 
-- It does not verify anything. Whoever reviews signups will not recognise most of 500+
-  students by face; and where they do recognise someone, checking the name against the
-  register would have been enough on its own.
-- It is trivially defeated. Any photo of any student in uniform passes, including ones
-  taken from this site's own gallery page.
-- It collects facial photographs of minors from unidentified submitters. Nigeria's Data
-  Protection Act 2023 treats children's data with heightened care and parental consent,
-  so that is a standing obligation taken on in exchange for a control that does not work.
-  An open upload pointed at a staff review queue also invites content nobody wants there.
-- Someone has to review every request, forever, for a weak signal.
+Every failure returns the same message, so the form cannot be used to discover who attends
+or teaches at the school. A pupil marked `left` cannot sign up. One student account and one
+parent account per child, one account per member of staff, all enforced by unique indexes
+rather than by application code.
 
-Note that sign-in and sign-up are separate things. Removing self-registration is the point;
-sign-in was removed only because there is no backend behind it yet, and a login form that
-authenticates nothing is worse than none.
+### Security
 
-### Recommended: school-issued accounts
+- **Passwords** are hashed with scrypt (N=32768, r=8, p=1, 64-byte key, 16-byte random
+  salt), using only `node:crypto`, so there is no native build step. Verification is a
+  constant-time compare.
+- **A failed login spends the same time** whether the email exists or not, so the response
+  time does not reveal which addresses are registered.
+- **Sessions** are 256-bit random tokens. Only their SHA-256 is stored, so a database leak
+  does not hand over live sessions. The cookie is `HttpOnly`, `SameSite=Lax` and `Secure`
+  over HTTPS, and expires after 7 days.
+- **Rate limiting** counts failed attempts per IP and per identifier over 15 minutes
+  (6 logins, 5 sign-ups per identifier). It lives in the database because serverless
+  instances do not share memory.
+- **Every query is parameterised.** There is no string concatenation anywhere near SQL.
+- **Request bodies are capped at 16KB**, rejected on `Content-Length` before being read.
+- Responses never include the password hash.
 
-Simplest and strongest for a single school, and what the site currently describes:
+### Running it locally
 
-1. ICT bulk-creates accounts from the admission register at the start of each term.
-2. Form teachers hand each student a slip with a username and a one-time password.
-3. Parents receive theirs by SMS or email to the number already held on file.
+```bash
+npm install
 
-No review queue, no upload handling, no self-service fraud surface.
+# any PostgreSQL will do
+export DATABASE_URL="postgres://user:pass@localhost:5432/bfss"
 
-### If self-service is wanted later: claim, do not create
+npm run db:setup     # create the tables
+npm run db:demo      # optional: demo register rows to try it with
+npm run dev          # http://localhost:3000
+npm test             # 65 auth tests, needs DATABASE_URL
+```
 
-Reduces office workload without letting anyone register from outside:
+With `db:demo` loaded you can sign up as student `BFS/2025/0142`, surname Okafor, class
+SS2; or as a teacher with `BFS/STF/014`, surname Ogun, using the staff email on file.
 
-1. Student or parent enters admission number plus date of birth.
-2. Server checks both against the register, and that the account is not already claimed.
-3. A one-time code is sent to the phone or email **already on file** for that family. It is
-   never sent to an address supplied in the form.
-4. They enter the code and set their own password.
+### Loading the real register from the spreadsheet
 
-An outsider fails at step 2 (needs a real admission number) or step 3 (needs access to that
-family's phone or email). No admin review, no photographs.
+Export the office spreadsheet to CSV, then:
 
-Build notes: rate-limit step 1 per IP and per admission number so the register cannot be
-enumerated; expire codes in ~10 minutes and allow a small number of attempts; return the
-same response whether or not the admission number exists, so the form cannot be used to
-confirm who attends the school; store passwords with a slow hash such as argon2 or bcrypt.
+```bash
+node scripts/import-register.mjs students register.csv
+node scripts/import-register.mjs staff staff.csv
+```
 
-### Where a photograph does belong
+Students CSV columns (header row required, order does not matter):
+`admission_no, surname, other_names, class_level, guardian_email, guardian_phone, status`
+Staff: `staff_no, surname, other_names, email, status`
 
-As a student ID photo taken by the school at enrolment and shown to staff inside the
-portal: the school's own photograph of its own student, not an unverified upload.
+`db/sample-register.csv` shows the shape. Re-running is safe: rows are matched on
+admission or staff number and updated, so the spreadsheet stays the source of truth. Bad
+rows are reported with their line number and skipped rather than half-imported, and the
+command exits non-zero if anything was skipped.
 
-### What this needs
+**A pupil who leaves should be set to `status=left`, not deleted.** That keeps any existing
+account linked while blocking a fresh sign-up.
 
-The site is static today. Either flow requires a backend, roughly: Vercel plus a managed
-Postgres (Neon or Supabase), an auth library for sessions and password hashing, and the
-admission register loaded as data. The claim flow itself is a few hundred lines; getting
-clean register data in is usually the larger job.
+Real exports are git-ignored: `*.csv` is excluded so a file of children's data cannot be
+committed by accident.
+
+### Deploying
+
+On Vercel the `api/` directory is picked up automatically. Set `DATABASE_URL` as an
+environment variable (Neon, Supabase and Vercel Postgres all work; use their pooled
+connection string), then run `npm run db:setup` once against it and import the register.
+
+Without `DATABASE_URL` the marketing site still serves normally and the auth endpoints
+return 503 with a "contact the school office" message, rather than pretending to work.
+
+### API
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/auth/signup` | POST | Create an account, checked against the register. 201 on success |
+| `/api/auth/login` | POST | Email and password, sets the session cookie |
+| `/api/auth/logout` | POST | Revokes the session server-side and clears the cookie |
+| `/api/auth/me` | GET | The signed-in user, or 401 |
+
+### Still to do
+
+- **There is no portal behind the login yet.** Signing in sets a valid session and returns
+  the user, then lands back on the homepage. The pages that show results, attendance and
+  timetables are the next piece of work.
+- **No password reset.** The login page tells students to ask their form teacher and
+  everyone else to email ICT. A self-service reset needs email or SMS sending.
+- **No "Continue with Google".** It was left off deliberately rather than shipped as a
+  dead button: it needs a Google Cloud OAuth client and consent screen first.
+- **Photographs are not collected at sign-up**, by choice. A photo an admin eyeballs does
+  not verify anything the register does not already answer, and it would mean holding
+  facial images of minors uploaded by unidentified people. The register check is both
+  stronger and less risky. Where a photo does belong is as a school-taken ID photo shown
+  to staff inside the portal.
