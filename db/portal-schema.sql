@@ -110,6 +110,13 @@ CREATE TABLE IF NOT EXISTS terms (
   CHECK (ends_on > starts_on)
 );
 
+-- --- Where a register row came from ---------------------------------------
+-- 'import' means it came from the school's spreadsheet; 'signup' means an open
+-- sign-up created it. Sign-up stays open until at least one imported row exists,
+-- so creating an account does not close the door behind it.
+ALTER TABLE register       ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'import';
+ALTER TABLE staff_register ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'import';
+
 -- --- Class arm ------------------------------------------------------------
 -- SS2A is class_level SS2 plus arm A. Added here rather than in the auth
 -- schema so sign-up keeps asking only for the year group.

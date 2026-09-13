@@ -185,10 +185,48 @@
     }, 1200);
   }
 
+  /**
+   * Say plainly what sign-up will do right now: whether a database is attached,
+   * and whether details have to match the school register. Without this the
+   * only feedback is a refusal after filling the whole form in.
+   */
+  async function showMode() {
+    var note = document.querySelector("[data-mode-note]");
+    var registerNote = document.querySelector("[data-register-note]");
+    if (!note) { return; }
+
+    var mode;
+    try {
+      var res = await fetch("/api/auth/mode", { credentials: "same-origin" });
+      mode = await res.json();
+    } catch (err) {
+      return;                                   // leave the default wording
+    }
+
+    if (!mode.configured) {
+      note.innerHTML = "<strong>The portal is not connected to a database yet.</strong> " +
+        "Sign-up will not work until one is attached. " +
+        '<a href="portal.html?demo=1">Open the demo preview</a> to see the portal in the meantime.';
+      note.hidden = false;
+      if (registerNote) { registerNote.hidden = true; }
+      return;
+    }
+
+    if (mode.openSignup) {
+      note.innerHTML = "<strong>Open sign-up is on.</strong> " +
+        "There is no register loaded yet, so any admission or staff number you enter is " +
+        "accepted and an entry is created for it. Once the school register is imported, " +
+        "sign-up closes automatically and details must match it.";
+      note.hidden = false;
+      if (registerNote) { registerNote.hidden = true; }
+    }
+  }
+
   function initSignup() {
     var form = document.querySelector("[data-signup-form]");
     if (!form) { return; }
     initRoleTabs(form);
+    showMode();
 
     form.addEventListener("submit", async function (event) {
       event.preventDefault();

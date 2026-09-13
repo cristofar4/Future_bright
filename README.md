@@ -58,9 +58,11 @@ Open `index.html` in a browser and it works.
 │   └── sample-register.csv       # the CSV shape the importer expects
 ├── scripts/
 │   ├── dev-server.mjs            # static files + /api routes, for local work
+│   ├── db.mjs                    # setup / demo / status, no psql needed
 │   ├── import-register.mjs       # spreadsheet CSV -> register table
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
-│   └── test-portal.mjs           # 31 dashboard tests
+│   ├── test-portal.mjs           # 31 dashboard tests
+│   └── test-signup-mode.mjs      # 25 open/closed sign-up tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -187,8 +189,9 @@ serverless functions under `api/` plus a PostgreSQL database.
 
 ### How sign-up is kept closed
 
-Anyone can open the sign-up page, but an account is only created when the details match
-a row in the school register. That register is imported from the office spreadsheet, so
+Once a register has been imported, anyone can open the sign-up page but an account is only
+created when the details match a row in it. Before that import, sign-up is open so the site
+can be set up; see "Open sign-up" above. That register is imported from the office spreadsheet, so
 the school decides who exists, not the form.
 
 | Role | What must match |
@@ -219,24 +222,70 @@ rather than by application code.
 - **Request bodies are capped at 16KB**, rejected on `Content-Length` before being read.
 - Responses never include the password hash.
 
-### Running it locally
+### Getting it running
+
+You need a PostgreSQL database. Without one the site still serves, but sign-up and the
+portal return 503 with a "contact the school office" message rather than pretending to
+work. There is no way around this: accounts have to live somewhere.
+
+**On Vercel, from nothing to a working sign-up:**
+
+1. Create a free Postgres. Any works; Neon (neon.tech) and Supabase both have a free tier,
+   and Vercel offers one under Storage. Copy the connection string, which looks like
+   `postgres://user:password@host/dbname?sslmode=require`.
+2. In your Vercel project: **Settings -> Environment Variables**, add `DATABASE_URL` with
+   that value, for all environments. Redeploy so it takes effect.
+3. From a clone of this repo, pointing at the same database:
+
+   ```bash
+   npm install
+   export DATABASE_URL="postgres://...(the same string)"
+   npm run db:setup     # create the tables
+   npm run db:demo      # optional: sample timetable, results and announcements
+   npm run db:status    # confirms what is connected and whether sign-up is open
+   ```
+
+4. Go to `/signup.html` and create your account. Any admission number works, see below.
+
+`db:setup` and `db:demo` run through the `pg` driver, so the `psql` command-line client is
+not required.
+
+**Locally:**
 
 ```bash
 npm install
-
-# any PostgreSQL will do
 export DATABASE_URL="postgres://user:pass@localhost:5432/bfss"
-
-npm run db:setup     # create the tables (accounts + portal)
-npm run db:demo      # optional: demo register, timetable, results and attendance
+npm run db:setup
+npm run db:demo
 npm run dev          # http://localhost:3000
-npm test             # 96 API tests, needs DATABASE_URL
+npm test             # 121 API tests, needs DATABASE_URL
 ```
 
-With `db:demo` loaded, sign up as **Daniel James**, admission number `BFS/2024/0178`,
-class SS2, to see the dashboard with data in it. Other demo accounts: student
-`BFS/2025/0142` (surname Okafor, SS2), or teacher `BFS/STF/014` (surname Ogun, using the
-staff email on file).
+### Open sign-up
+
+Sign-up is **open until a real register is imported**. On a fresh database any admission or
+staff number is accepted, and a register entry is created from what was typed, so the person
+setting the site up can make an account and look around without seeding data first. The
+sign-up page says which mode it is in, so nobody has to guess.
+
+Importing a register with `npm run import:register` closes it automatically: from then on
+details must match a row. Demo rows loaded by `npm run db:demo` are marked as demo and do
+**not** close it, so sample data and open sign-up work together.
+
+Override with an environment variable when you need to:
+
+| `PORTAL_OPEN_SIGNUP` | Behaviour |
+| --- | --- |
+| unset | Open until a register is imported. The default |
+| `true` | Always open. Evaluation only: anyone on the internet can create an account |
+| `false` | Always require a register match, even on an empty database |
+
+`npm run db:status` prints which mode is currently in force.
+
+Everything else still applies in open mode: password rules, the duplicate checks, and rate
+limiting, so it cannot be used to create accounts in bulk.
+
+**Before real pupils use the site, import the register.** That is what turns the check on.
 
 ### Loading the real register from the spreadsheet
 
@@ -288,6 +337,7 @@ return 503 with a "contact the school office" message, rather than pretending to
 | `/api/portal/profile` | GET | Their record, guardian contacts and subjects |
 | `/api/portal/password` | POST | Change password; ends every other session |
 | `/api/portal/demo` | GET | Sample student for the preview; no database, no sign-in |
+| `/api/auth/mode` | GET | Whether a database is attached and whether sign-up is open |
 
 ### The portal pages
 

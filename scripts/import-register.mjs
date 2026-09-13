@@ -78,13 +78,13 @@ async function importStudents(records) {
     }
 
     const { rows } = await query(
-      `INSERT INTO register (admission_no, surname, other_names, class_level, guardian_email, guardian_phone, status)
-       VALUES ($1, $2, $3, $4, NULLIF($5,''), NULLIF($6,''), $7)
+      `INSERT INTO register (admission_no, surname, other_names, class_level, guardian_email, guardian_phone, status, source)
+       VALUES ($1, $2, $3, $4, NULLIF($5,''), NULLIF($6,''), $7, 'import')
        ON CONFLICT (upper(replace(admission_no, ' ', ''))) DO UPDATE
          SET surname = EXCLUDED.surname, other_names = EXCLUDED.other_names,
              class_level = EXCLUDED.class_level, guardian_email = EXCLUDED.guardian_email,
              guardian_phone = EXCLUDED.guardian_phone, status = EXCLUDED.status,
-             updated_at = now()
+             source = 'import', updated_at = now()
        RETURNING (xmax = 0) AS was_insert`,
       [admissionNo, surname, r.other_names || r.first_name || "", classLevel,
        r.guardian_email || r.parent_email || "", r.guardian_phone || r.parent_phone || "", status]
@@ -110,11 +110,11 @@ async function importStaff(records) {
     }
 
     const { rows } = await query(
-      `INSERT INTO staff_register (staff_no, surname, other_names, email, status)
-       VALUES ($1, $2, $3, NULLIF($4,''), $5)
+      `INSERT INTO staff_register (staff_no, surname, other_names, email, status, source)
+       VALUES ($1, $2, $3, NULLIF($4,''), $5, 'import')
        ON CONFLICT (upper(replace(staff_no, ' ', ''))) DO UPDATE
          SET surname = EXCLUDED.surname, other_names = EXCLUDED.other_names,
-             email = EXCLUDED.email, status = EXCLUDED.status
+             email = EXCLUDED.email, status = EXCLUDED.status, source = 'import'
        RETURNING (xmax = 0) AS was_insert`,
       [staffNo, surname, r.other_names || r.first_name || "", r.email || "", status]
     );

@@ -14,6 +14,7 @@
  * out who attends or teaches at the school.
  */
 import { query } from "../_lib/db.js";
+import { isOpenSignup } from "./_mode.js";
 import { hashPassword } from "../_lib/crypto.js";
 import { json, methodNotAllowed, readJson, badBody, setSessionCookie, clientIp } from "../_lib/http.js";
 import { createSession, publicUser } from "../_lib/session.js";
@@ -82,6 +83,10 @@ export default async function handler(req, res) {
       return json(res, 429, { error: "rate_limited", message: limited });
     }
 
+    // Rate limiting still applies in open mode, so it cannot be used to bulk
+    // create accounts.
+    const openSignup = await isOpenSignup();
+
     // ---- verify against the register ------------------------------------
     let registerId = null;
     let staffId = null;
@@ -93,7 +98,20 @@ export default async function handler(req, res) {
           WHERE upper(replace(staff_no, ' ', '')) = $1`,
         [reference]
       );
-      const staff = rows[0];
+      let staff = rows[0];
+
+      if (!staff && openSignup) {
+        const parts = fullName.split(/\s+/).filter(Boolean);
+        const created = await query(
+          `INSERT INTO staff_register (staff_no, surname, other_names, email, status, source)
+           VALUES ($1, $2, $3, $4, 'active', 'signup')
+           ON CONFLICT (upper(replace(staff_no, ' ', ''))) DO NOTHING
+           RETURNING id, surname, email, status`,
+          [reference, parts[parts.length - 1], parts.slice(0, -1).join(" "), email]
+        );
+        staff = created.rows[0];
+      }
+
       const emailOnFile = normaliseEmail(staff?.email || "");
       const ok =
         staff &&
@@ -114,7 +132,24 @@ export default async function handler(req, res) {
           WHERE upper(replace(admission_no, ' ', '')) = $1`,
         [reference]
       );
-      const student = rows[0];
+      let student = rows[0];
+
+      // Open sign-up (a deployment with no register yet, or the override set):
+      // create the register entry from what was typed instead of refusing.
+      if (!student && openSignup) {
+        const parts = fullName.split(/\s+/).filter(Boolean);
+        const created = await query(
+          `INSERT INTO register (admission_no, surname, other_names, class_level, class_arm,
+                                 guardian_email, guardian_phone, status, source)
+           VALUES ($1, $2, $3, $4, 'A', NULLIF($5,''), NULLIF($6,''), 'active', 'signup')
+           ON CONFLICT (upper(replace(admission_no, ' ', ''))) DO NOTHING
+           RETURNING id, surname, class_level, guardian_email, guardian_phone, status`,
+          [reference, parts[parts.length - 1], parts.slice(0, -1).join(" "), classLevel,
+           role === "parent" ? email : "", role === "parent" ? phoneRaw : ""]
+        );
+        student = created.rows[0];
+      }
+
       let ok =
         student &&
         student.status === "active" &&

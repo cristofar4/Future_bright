@@ -22,9 +22,9 @@ ON CONFLICT (session, term) DO UPDATE
 
 -- Daniel James, the pupil shown in the dashboard design.
 INSERT INTO register (admission_no, surname, other_names, class_level, class_arm,
-                      guardian_email, guardian_phone, status)
+                      guardian_email, guardian_phone, status, source)
 VALUES ('BFS/2024/0178', 'James', 'Daniel', 'SS2', 'A',
-        'mrs.james@example.com', '+234 806 222 3344', 'active')
+        'mrs.james@example.com', '+234 806 222 3344', 'active', 'demo')
 ON CONFLICT (upper(replace(admission_no, ' ', ''))) DO UPDATE
   SET class_arm = EXCLUDED.class_arm, other_names = EXCLUDED.other_names;
 

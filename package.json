@@ -9,12 +9,14 @@
   },
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
-    "db:setup": "psql \"$DATABASE_URL\" -f db/schema.sql && psql \"$DATABASE_URL\" -f db/portal-schema.sql",
-    "db:demo": "psql \"$DATABASE_URL\" -f db/demo-register.sql && psql \"$DATABASE_URL\" -f db/demo-portal.sql",
+    "db:setup": "node scripts/db.mjs setup",
+    "db:demo": "node scripts/db.mjs demo",
     "import:register": "node scripts/import-register.mjs",
-    "test": "node scripts/test-auth.mjs && node scripts/test-portal.mjs",
+    "test": "node scripts/test-auth.mjs && node scripts/test-portal.mjs && node scripts/test-signup-mode.mjs",
     "test:auth": "node scripts/test-auth.mjs",
-    "test:portal": "node scripts/test-portal.mjs"
+    "test:portal": "node scripts/test-portal.mjs",
+    "db:status": "node scripts/db.mjs status",
+    "test:signup": "node scripts/test-signup-mode.mjs"
   },
   "dependencies": {
     "pg": "^8.13.1"

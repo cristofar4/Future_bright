@@ -218,7 +218,9 @@
     setAll("[data-late]", plural(summary.late || 0, "day"));
     setAll("[data-att-total]", summary.total || 0);
     setAll("[data-attendance-note]",
-      (summary.percent || 0) >= 90 ? "Keep up the good attendance!" : "Try not to miss any more days.");
+      !summary.total ? "No attendance recorded yet."
+        : summary.percent >= 90 ? "Keep up the good attendance!"
+        : "Try not to miss any more days.");
   }
 
   /* --- per-page renderers ----------------------------------------------- */
