@@ -107,7 +107,7 @@ export function portalRoute(fn) {
     try {
       await fn(req, res);
     } catch (err) {
-      if (err.code === "NO_DATABASE") {
+      if ((err.code === "NO_DATABASE" || err.code === "BAD_DATABASE_URL")) {
         return json(res, 503, {
           error: "not_configured",
           message: "The portal is not connected to a database yet. Open the demo preview to see how it looks.",

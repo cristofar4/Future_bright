@@ -8,11 +8,22 @@
       ok: "The serverless functions are live.",
       no: "The API did not respond. The deployment probably failed to build." },
     { key: "database", label: "Database connected",
-      ok: "DATABASE_URL is set and the database answered.",
-      no: "No database is attached yet, so accounts have nowhere to live." },
+      ok: "The connection string is set and the database answered.",
+      no: "No database is attached yet, so accounts have nowhere to live.",
+      // The line above is wrong once a string IS set: say what is actually so.
+      noFor: {
+        wrong_url:  "A connection string is set, but not one that can be opened directly.",
+        connection: "A connection string is set, but the database did not answer.",
+      } },
     { key: "schema",   label: "Tables created",
       ok: "The portal tables exist.",
-      no: "The database is reachable but empty." },
+      no: "The database is reachable but empty.",
+      noFor: {
+        database:   "Nothing to create them in yet.",
+        wrong_url:  "Nothing to create them in yet.",
+        connection: "Cannot tell until the database answers.",
+        build:      "Cannot tell until the API responds.",
+      } },
   ];
 
   function icon(state) {
@@ -68,6 +79,14 @@
             "supabase.com and add it yourself under Settings, then Environment Variables, as DATABASE_URL " +
             "for all environments. Either way, redeploy afterwards.",
     },
+    wrong_url: {
+      title: "That connection string cannot be used directly",
+      body: "It is set, but it is a proxy URL rather than a Postgres one, so only its own client " +
+            "library can open it. Prisma Postgres does this: it gives you prisma+postgres://\u2026 " +
+            "with an api_key. Use that database's DIRECT connection string instead, the one starting " +
+            "postgres:// or postgresql://, or create a plain Postgres (Neon or Supabase) and use that. " +
+            "Set it as DATABASE_URL for all environments, then redeploy.",
+    },
     connection: {
       title: "The database refused the connection",
       body: "The connection string is set but the database did not answer. Check it was pasted whole, that " +
@@ -109,7 +128,8 @@
       row.appendChild(mark);
       var text = el("span", "check__text");
       text.appendChild(el("strong", null, step.label));
-      text.appendChild(el("span", null, good ? step.ok : step.no));
+      var says = good ? step.ok : ((step.noFor && step.noFor[state.stage]) || step.no);
+      text.appendChild(el("span", null, says));
       row.appendChild(text);
       list.appendChild(row);
     });

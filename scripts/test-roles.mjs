@@ -289,6 +289,29 @@ console.log("\nwhere the connection string is read from");
   Object.assign(process.env, saved);
 }
 
+/* ------------------------------------------- a connection string pg cannot use */
+console.log("\na proxy connection string is named as the problem");
+{
+  const { isDirectPostgresUrl } = await import("../api/_lib/db.js");
+  const direct = [
+    "postgres://u:p@host/db",
+    "postgresql://u:p@host/db?sslmode=require",
+    "POSTGRESQL://u:p@host/db",
+    "/var/run/postgresql",
+  ];
+  direct.forEach((u) => check(`accepted: ${u.slice(0, 34)}`, isDirectPostgresUrl(u) === true));
+
+  // Prisma Postgres hands out an Accelerate URL that only the Prisma client can
+  // open. Treating it as a dead host would send someone hunting a firewall.
+  const proxied = [
+    "prisma+postgres://accelerate.prisma-data.net/?api_key=ey",
+    "prisma://accelerate.prisma-data.net/?api_key=ey",
+    "mysql://u:p@host/db",
+    "",
+  ];
+  proxied.forEach((u) => check(`refused: ${u.slice(0, 34) || "(empty)"}`, isDirectPostgresUrl(u) === false));
+}
+
 const mode = await call("/api/auth/mode");
 check("mode names the variable it read", mode.body.databaseUrlVar === "DATABASE_URL",
   String(mode.body.databaseUrlVar));

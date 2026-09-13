@@ -72,7 +72,7 @@ Open `index.html` in a browser and it works.
 │   ├── test-auth.mjs             # 65 end-to-end auth tests
 │   ├── test-portal.mjs           # 31 pupil dashboard tests
 │   ├── test-signup-mode.mjs      # 25 open/closed sign-up tests
-│   └── test-roles.mjs            # 98 parent / teacher / admin tests
+│   └── test-roles.mjs            # 106 parent / teacher / admin tests
 └── design/homepage-mockup.png    # the original design this build follows
 ```
 
@@ -282,7 +282,7 @@ npm run db:setup
 npm run db:demo
 npm run dev          # http://localhost:3000
 npm run check        # deployment checks, no database needed
-npm test             # checks + 219 API tests, needs DATABASE_URL
+npm test             # checks + 227 API tests, needs DATABASE_URL
 npm run test:roles   # just the parent, teacher and admin dashboards
 ```
 
@@ -370,6 +370,13 @@ integrations each set their own when you press "connect to project", so `POSTGRE
 `DATABASE_URL_UNPOOLED` and `POSTGRES_URL_NON_POOLING` are accepted too (first one set
 wins). `setup.html` says which one it is reading, so a database connected through Vercel's
 UI does not look like it was ignored. The name only: never the string.
+
+**It has to be a direct Postgres URL** (`postgres://` or `postgresql://`). This talks to
+Postgres over the wire with `pg`, so a proxy string only a vendor's own client can open
+will not work. Prisma Postgres is the one to watch for: it hands out
+`prisma+postgres://…?api_key=…`, which needs the Prisma client. Use that database's direct
+connection string instead, or pick a plain Postgres. `setup.html` names this case
+specifically rather than letting it look like an unreachable host.
 
 ### API
 

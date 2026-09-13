@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     setSessionCookie(req, res, token);
     return json(res, 200, { user: publicUser(user) });
   } catch (err) {
-    if (err.code === "NO_DATABASE") {
+    if ((err.code === "NO_DATABASE" || err.code === "BAD_DATABASE_URL")) {
       console.error("[login] DATABASE_URL is not configured");
       return json(res, 503, {
         error: "not_configured",

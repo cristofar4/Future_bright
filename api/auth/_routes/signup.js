@@ -223,7 +223,7 @@ export default async function handler(req, res) {
     );
     return json(res, 201, { user: publicUser(full[0]) });
   } catch (err) {
-    if (err.code === "NO_DATABASE") {
+    if ((err.code === "NO_DATABASE" || err.code === "BAD_DATABASE_URL")) {
       console.error("[signup] DATABASE_URL is not configured");
       return json(res, 503, {
         error: "not_configured",

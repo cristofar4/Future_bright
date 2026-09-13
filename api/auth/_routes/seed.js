@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       message: "Sample data loaded. Sign-up stays open, because demo rows are not a real register.",
     });
   } catch (err) {
-    if (err.code === "NO_DATABASE") {
+    if ((err.code === "NO_DATABASE" || err.code === "BAD_DATABASE_URL")) {
       return json(res, 503, { error: "not_configured", message: "No database is attached yet." });
     }
     if (err.code === "42P01") {           // undefined_table

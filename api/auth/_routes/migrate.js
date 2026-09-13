@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
     return json(res, 200, { ok: true, message: "Tables created. You can create an account now." });
   } catch (err) {
-    if (err.code === "NO_DATABASE") {
+    if ((err.code === "NO_DATABASE" || err.code === "BAD_DATABASE_URL")) {
       return json(res, 503, {
         error: "not_configured",
         message: "No database is attached yet. Set DATABASE_URL in Vercel first, then redeploy.",

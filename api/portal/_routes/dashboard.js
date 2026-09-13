@@ -154,7 +154,7 @@ export default async function handler(req, res) {
       unreadMessages: unread[0] ? unread[0].n : 0,
     });
   } catch (err) {
-    if (err.code === "NO_DATABASE") {
+    if ((err.code === "NO_DATABASE" || err.code === "BAD_DATABASE_URL")) {
       return json(res, 503, { error: "not_configured", message: "The portal is not available yet." });
     }
     console.error("[dashboard]", err);

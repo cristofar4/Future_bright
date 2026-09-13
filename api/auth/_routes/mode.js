@@ -6,7 +6,7 @@
  * Deliberately says nothing about who is on the register and never echoes a
  * connection string or a raw driver error, only a category.
  */
-import { query, databaseUrlVar } from "../../_lib/db.js";
+import { query, databaseUrl, databaseUrlVar, isDirectPostgresUrl } from "../../_lib/db.js";
 import { json, methodNotAllowed } from "../../_lib/http.js";
 
 export default async function handler(req, res) {
@@ -32,6 +32,13 @@ export default async function handler(req, res) {
     return json(res, 200, state);
   }
   state.databaseUrlVar = varName;
+
+  // A proxy URL such as Prisma Postgres's prisma+postgres:// cannot be opened
+  // by pg at all, so say that rather than letting it look like a dead host.
+  if (!isDirectPostgresUrl(databaseUrl())) {
+    state.stage = "wrong_url";
+    return json(res, 200, state);
+  }
 
   try {
     // Cheap connectivity check that does not assume any table exists.

@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     await destroySession(req);
   } catch (err) {
     // Clearing the cookie still matters even if the delete failed.
-    if (err.code !== "NO_DATABASE") console.error("[logout]", err);
+    if (err.code !== "NO_DATABASE" && err.code !== "BAD_DATABASE_URL") console.error("[logout]", err);
   }
   clearSessionCookie(req, res);
   return json(res, 200, { ok: true });

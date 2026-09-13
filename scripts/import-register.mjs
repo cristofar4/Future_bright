@@ -146,7 +146,11 @@ async function main() {
 }
 
 main().catch(async (err) => {
-  console.error(err.code === "NO_DATABASE" ? "DATABASE_URL is not set." : err);
+  console.error(err.code === "NO_DATABASE" ? "DATABASE_URL is not set."
+    : err.code === "BAD_DATABASE_URL"
+      ? "DATABASE_URL is not a direct Postgres URL. A proxy string such as Prisma's\n"
+        + "prisma+postgres://... cannot be used here; use the direct postgres:// one."
+    : err);
   await closePool().catch(() => {});
   process.exit(1);
 });

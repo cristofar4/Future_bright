@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
     return json(res, 200, { ok: true, message: "Your password has been changed. Any other devices have been signed out." });
   } catch (err) {
-    if (err.code === "NO_DATABASE") {
+    if ((err.code === "NO_DATABASE" || err.code === "BAD_DATABASE_URL")) {
       return json(res, 503, { error: "not_configured", message: "The portal is not connected to a database yet." });
     }
     console.error("[password]", err);

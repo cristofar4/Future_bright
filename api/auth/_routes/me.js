@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     if (!row) return json(res, 401, { error: "not_signed_in", message: "Not signed in." });
     return json(res, 200, { user: publicUser(row) });
   } catch (err) {
-    if (err.code === "NO_DATABASE") {
+    if ((err.code === "NO_DATABASE" || err.code === "BAD_DATABASE_URL")) {
       return json(res, 503, { error: "not_configured", message: "The portal is not available yet." });
     }
     console.error("[me]", err);

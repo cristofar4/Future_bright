@@ -24,11 +24,28 @@ export function databaseUrl() {
   return name ? String(process.env[name]).trim() : null;
 }
 
+/* This talks to Postgres over the wire with `pg`. Some managed offerings hand
+ * out a proxy URL instead of a Postgres one - Prisma Postgres gives you
+ * `prisma+postgres://...?api_key=...`, which only the Prisma client can open.
+ * Spot that here so the answer is "this needs a direct connection string"
+ * rather than a connection timeout nobody can interpret. */
+export function isDirectPostgresUrl(url) {
+  const s = String(url || "").trim();
+  return s.startsWith("/")                       // local unix socket
+      || /^postgres(ql)?:\/\//i.test(s);
+}
+
 export function getPool() {
   if (!pool) {
     const connectionString = databaseUrl();
     if (!connectionString) {
       throw Object.assign(new Error("DATABASE_URL is not set"), { code: "NO_DATABASE" });
+    }
+    if (!isDirectPostgresUrl(connectionString)) {
+      throw Object.assign(
+        new Error("The connection string is not a direct Postgres URL"),
+        { code: "BAD_DATABASE_URL" }
+      );
     }
     pool = new pg.Pool({
       connectionString,
